@@ -18,6 +18,7 @@ import {
 } from '../../components/ui';
 import { colors, fonts } from '../../theme/tokens';
 import { useRestroomExperience } from './context';
+import { HistorySection } from './HistorySection';
 import {
   assessment,
   discover,
@@ -594,8 +595,6 @@ export function DetailScreen({
     lastRefreshed,
     setSearch,
   } = useRestroomExperience();
-  const [page, setPage] = useState(1);
-  const [reportPage, setReportPage] = useState(1);
   const restroom = snapshot.restrooms.find(
     (r) => r.id === restroomId && r.state !== 'pending',
   );
@@ -771,47 +770,11 @@ export function DetailScreen({
           variant="secondary"
           onPress={() => onContribute({ restroomId, action: 'report' })}
         />
-        <AppText variant="subtitle">Recent reviews</AppText>
-        {info.reviews.length === 0 && <AppText>No reviews yet</AppText>}
-        {info.reviews.slice(0, page * 10).map((review) => (
-          <Card key={review.id}>
-            <AppText variant="heading">{review.authorName}</AppText>
-            <AppText>{`${review.overall} / 5 · ${new Date(review.updatedAt).toLocaleString()}`}</AppText>
-            {review.notes && <AppText>{review.notes}</AppText>}
-            {review.desperateTimes !== undefined && (
-              <AppText>
-                {review.desperateTimes
-                  ? 'Visitor assessment: desperate times only'
-                  : 'Visitor assessment: not desperate times only'}
-              </AppText>
-            )}
-            {FlagComponent && (
-              <FlagComponent kind="review" contributionId={review.id} />
-            )}
-          </Card>
-        ))}
-        {info.reviews.length > page * 10 && (
-          <Button label="More reviews" onPress={() => setPage(page + 1)} />
-        )}
-        <AppText variant="subtitle">Usability history</AppText>
-        {info.reports.length === 0 && <AppText>No observations yet</AppText>}
-        {info.reports
-          .slice(0, reportPage * 10)
-          .filter((report) => report !== info.recent)
-          .map((report) => (
-            <View key={report.id} style={styles.stack}>
-              <AppText>{`Historical observation · ${report.state} · ${new Date(report.observedAt).toLocaleString()}`}</AppText>
-              {FlagComponent && (
-                <FlagComponent kind="report" contributionId={report.id} />
-              )}
-            </View>
-          ))}
-        {info.reports.length > reportPage * 10 && (
-          <Button
-            label="More observations"
-            onPress={() => setReportPage(reportPage + 1)}
-          />
-        )}
+        <HistorySection
+          restroomId={restroomId}
+          recentReportId={info.recent?.id}
+          FlagComponent={FlagComponent}
+        />
       </ScrollView>
       <View style={styles.footer}>
         <DirectionsAction restroom={restroom} />

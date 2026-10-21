@@ -1,4 +1,5 @@
 import { createDemoCatalog, demoCenter } from './fixtures';
+import { memoryHistoryPage } from './history';
 import {
   nativeClock,
   nativeDirections,
@@ -19,6 +20,8 @@ function unavailable(message: string): Services {
   return {
     repository: {
       load: fail,
+      loadReviews: fail,
+      loadReports: fail,
       saveReview: fail,
       submitReport: fail,
       flagContribution: fail,
@@ -91,6 +94,22 @@ export function createDemoServices(now: () => number = Date.now): Services {
   };
   const repository: RestroomRepository = {
     load: async () => JSON.parse(JSON.stringify(catalog)),
+    loadReviews: async (restroomId, cursor) =>
+      memoryHistoryPage(
+        catalog.reviews,
+        restroomId,
+        'reviews',
+        (item) => item.updatedAt,
+        cursor,
+      ),
+    loadReports: async (restroomId, cursor) =>
+      memoryHistoryPage(
+        catalog.reports,
+        restroomId,
+        'reports',
+        (item) => item.observedAt,
+        cursor,
+      ),
     saveReview: async (restroomId, input) => {
       const author = signedIn();
       if (

@@ -30,6 +30,7 @@ function useExperience(dependencies: ExperienceDependencies) {
   const [refreshing, setRefreshing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<number | null>(null);
+  const [revision, setRevision] = useState(0);
   const request = useRef(0);
   const refresh = useCallback(async () => {
     const version = ++request.current;
@@ -41,6 +42,7 @@ function useExperience(dependencies: ExperienceDependencies) {
         setSnapshot(data);
         setNow(dependencies.clock.now());
         setLastRefreshed(dependencies.clock.now());
+        setRevision((value) => value + 1);
       }
     } catch (error) {
       if (version === request.current)
@@ -102,6 +104,7 @@ function useExperience(dependencies: ExperienceDependencies) {
     refreshing,
     error,
     lastRefreshed,
+    revision,
     refresh,
   };
 }

@@ -66,8 +66,24 @@ export type ContributionTarget = {
   restroomId: string;
   action: 'review' | 'report';
 };
+export type HistoryCursor = {
+  restroomId: string;
+  kind: 'reviews' | 'reports';
+  seconds: number;
+  nanoseconds: number;
+  id: string;
+};
+export type HistoryPage<T> = { items: T[]; next: HistoryCursor | null };
 export interface RestroomRepository {
   load(): Promise<CatalogSnapshot>;
+  loadReviews(
+    restroomId: string,
+    cursor?: HistoryCursor,
+  ): Promise<HistoryPage<Review>>;
+  loadReports(
+    restroomId: string,
+    cursor?: HistoryCursor,
+  ): Promise<HistoryPage<UsabilityReport>>;
   saveReview(restroomId: string, input: ReviewInput): Promise<void>;
   submitReport(
     restroomId: string,

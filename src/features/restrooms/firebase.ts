@@ -22,7 +22,9 @@ import {
   serverTimestamp,
   startAfter,
   where,
+  Timestamp,
 } from 'firebase/firestore';
+import { historyPageSize, validateHistoryCursor } from './history.ts';
 import type {
   Authentication,
   RestroomRepository,
@@ -30,6 +32,8 @@ import type {
   Review,
   UsabilityReport,
   Visitor,
+  HistoryCursor,
+  HistoryPage,
 } from './types';
 
 /** All contributions are read for accurate aggregation, with an explicit bounded-catalog failure. */
@@ -88,6 +92,55 @@ export function createFirebaseServices(
       throw new Error('Catalog contains an invalid contribution timestamp.');
     return (value as { toMillis(): number }).toMillis();
   };
+  async function readHistory<T>(
+    kind: HistoryCursor['kind'],
+    field: 'updatedAt' | 'observedAt',
+    restroomId: string,
+    cursor?: HistoryCursor,
+  ): Promise<HistoryPage<T>> {
+    validateHistoryCursor(restroomId, kind, cursor);
+    const page = await getDocsFromServer(
+      query(
+        collection(db, kind),
+        where('restroomId', '==', restroomId),
+        where('suppressed', '==', false),
+        orderBy(field, 'desc'),
+        orderBy(documentId(), 'desc'),
+        ...(cursor
+          ? [
+              startAfter(
+                new Timestamp(cursor.seconds, cursor.nanoseconds),
+                cursor.id,
+              ),
+            ]
+          : []),
+        limit(historyPageSize + 1),
+      ),
+    );
+    const documents = page.docs.slice(0, historyPageSize);
+    const last = documents.at(-1);
+    const lastTime = last?.data()[field] as Timestamp | undefined;
+    return {
+      items: documents.map(
+        (item) =>
+          ({
+            ...item.data(),
+            id: item.id,
+            [field]: timestamp(item.data()[field]),
+          }) as T,
+      ),
+      next:
+        page.size > historyPageSize && last && lastTime
+          ? {
+              restroomId,
+              kind,
+              id: last.id,
+              seconds: lastTime.seconds,
+              nanoseconds: lastTime.nanoseconds,
+            }
+          : null,
+    };
+  }
   return {
     auth: {
       current: visitor,
@@ -121,6 +174,15 @@ export function createFirebaseServices(
       signOut: () => signOut(auth),
     },
     repository: {
+      loadReviews: (restroomId, cursor) =>
+        readHistory<Review>('reviews', 'updatedAt', restroomId, cursor),
+      loadReports: (restroomId, cursor) =>
+        readHistory<UsabilityReport>(
+          'reports',
+          'observedAt',
+          restroomId,
+          cursor,
+        ),
       load: async () => {
         const [restrooms, reviews, reports] = await Promise.all([
           readAll(

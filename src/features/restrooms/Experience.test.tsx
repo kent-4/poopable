@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { createDemoCatalog, demoCenter } from './fixtures';
+import { memoryHistoryPage } from './history';
 import { RestroomExperienceProvider } from './context';
 import { DiscoveryScreen, DetailScreen } from './screens';
 import type { ExperienceDependencies } from './types';
@@ -12,6 +13,22 @@ function dependencies(): ExperienceDependencies {
   return {
     repository: {
       load: async () => createDemoCatalog(now),
+      loadReviews: async (id, cursor) =>
+        memoryHistoryPage(
+          createDemoCatalog(now).reviews,
+          id,
+          'reviews',
+          (item) => item.updatedAt,
+          cursor,
+        ),
+      loadReports: async (id, cursor) =>
+        memoryHistoryPage(
+          createDemoCatalog(now).reports,
+          id,
+          'reports',
+          (item) => item.observedAt,
+          cursor,
+        ),
       saveReview: async () => {},
       submitReport: async () => {},
       flagContribution: async () => {},
