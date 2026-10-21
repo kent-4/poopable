@@ -270,3 +270,35 @@ test('last-resort classification expires at the exact 30-day boundary without tr
   expect(await screen.findByText('Demo Last-resort restroom')).toBeTruthy();
   expect(screen.queryByText(/Desperate-times option ·/)).toBeNull();
 });
+
+test('a late location response cannot replace a newer manually chosen search area', async () => {
+  const deps = dependencies();
+  delete deps.initialCenter;
+  let finishLocation!: (center: {
+    latitude: number;
+    longitude: number;
+  }) => void;
+  deps.location.locate = () =>
+    new Promise((resolve) => {
+      finishLocation = resolve;
+    });
+  await render(
+    <RestroomExperienceProvider dependencies={deps}>
+      <DiscoveryScreen onOpen={() => {}} onAccount={() => {}} />
+    </RestroomExperienceProvider>,
+  );
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Use my location' }),
+  );
+  await fireEvent.changeText(screen.getByLabelText('Search latitude'), '14.55');
+  await fireEvent.changeText(
+    screen.getByLabelText('Search longitude'),
+    '121.02',
+  );
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Search this location' }),
+  );
+  await act(async () => finishLocation({ latitude: 15, longitude: 122 }));
+  expect(screen.getByText('Search center: 14.5500, 121.0200')).toBeTruthy();
+  expect(screen.getByText('Demo Eucalyptus · Ground restroom')).toBeTruthy();
+});

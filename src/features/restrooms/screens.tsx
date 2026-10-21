@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   ScrollView,
@@ -277,6 +277,22 @@ export function DiscoveryScreen({
   );
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
+  const locationRequest = useRef(0);
+  useEffect(
+    () => () => {
+      locationRequest.current++;
+    },
+    [],
+  );
+  function chooseCenter(center: Coordinates) {
+    locationRequest.current++;
+    setLocating(false);
+    setSearch((previous) => ({ ...previous, center }));
+    setLatitude(String(center.latitude));
+    setLongitude(String(center.longitude));
+    setLocationError(null);
+    setManual(false);
+  }
   const rows = discover(snapshot, search, now);
   const relocationMatches = search.query.trim()
     ? snapshot.restrooms
@@ -295,21 +311,21 @@ export function DiscoveryScreen({
   const selected =
     rows.find((row) => row.restroom.id === selectedId) ?? rows[0];
   async function locate() {
+    const request = ++locationRequest.current;
     setLocating(true);
     setLocationError(null);
     try {
       const center = await dependencies.location.locate();
-      setSearch((previous) => ({ ...previous, center }));
-      setLatitude(String(center.latitude));
-      setLongitude(String(center.longitude));
-      setManual(false);
+      if (request !== locationRequest.current) return;
+      chooseCenter(center);
     } catch (error) {
+      if (request !== locationRequest.current) return;
       setLocationError(
         `${error instanceof Error ? error.message : 'Location is unavailable'}. Choose a location manually or try again.`,
       );
       setManual(true);
     } finally {
-      setLocating(false);
+      if (request === locationRequest.current) setLocating(false);
     }
   }
   function chooseLocation() {
@@ -330,9 +346,7 @@ export function DiscoveryScreen({
       );
       return;
     }
-    setSearch({ ...search, center: { latitude: lat, longitude: lng } });
-    setLocationError(null);
-    setManual(false);
+    chooseCenter({ latitude: lat, longitude: lng });
   }
   const header = (
     <View style={styles.stack}>
@@ -377,9 +391,7 @@ export function DiscoveryScreen({
               key={restroom.id}
               label={`Search around ${restroom.name}`}
               variant="secondary"
-              onPress={() =>
-                setSearch({ ...search, center: restroom.entrance })
-              }
+              onPress={() => chooseCenter(restroom.entrance)}
             />
           ))}
         </Card>
@@ -493,7 +505,7 @@ export function DiscoveryScreen({
             restrooms={rows.map((row) => row.restroom)}
             selectedId={selected?.restroom.id}
             onSelect={setSelectedId}
-            onSearchArea={(center) => setSearch({ ...search, center })}
+            onSearchArea={chooseCenter}
             onShowList={() => setMode('List')}
             markerLabels={Object.fromEntries(
               rows.map((row) => [
