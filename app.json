@@ -13,7 +13,10 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-router",
+      "expo-status-bar"
+    ],
+    "scheme": "poopable"
   }
 }
