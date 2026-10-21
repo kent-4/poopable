@@ -33,11 +33,13 @@ export function Button({
   onPress,
   variant = 'primary',
   disabled = false,
+  selected,
 }: {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'urgent';
   disabled?: boolean;
+  selected?: boolean;
 }) {
   const palette =
     variant === 'secondary'
@@ -60,7 +62,10 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
+      accessibilityState={{
+        disabled,
+        ...(selected === undefined ? {} : { selected }),
+      }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [

@@ -1,6 +1,6 @@
 # Poopable
 
-Expo SDK 58 / React Native application. The initial Expo Router route currently opens the design preview. Shared controls and screens live outside `src/app`; the root layout loads the bundled Quicksand and Nunito fonts before showing the route.
+Expo SDK 58 / React Native application. The initial Expo Router route opens discovery. The design preview remains at `/preview` in development. Shared controls and screens live outside `src/app`; the root layout loads the bundled Quicksand and Nunito fonts before showing the route.
 
 ## Install and run
 
@@ -8,8 +8,10 @@ Use Node.js LTS and npm with the committed `package-lock.json`:
 
 ```sh
 npm ci
-npm start -- --clear
+EXPO_PUBLIC_DATA_MODE=demo npm start -- --clear
 ```
+
+Demo mode contains only clearly fictional facilities and session-only accounts/contributions; it does not load launch data. Without an explicit data mode, the app shows catalog setup instructions.
 
 Expo Go must support SDK 58. If the store version does not, use a development build. Local iOS builds require macOS, Xcode, and an installed simulator runtime; local Android builds require the Android SDK and a running emulator:
 
@@ -37,7 +39,7 @@ npx expo export --platform ios --output-dir dist/ios
 npx expo export --platform android --output-dir dist/android
 ```
 
-Exports verify that both platform bundles and bundled assets resolve. They do not verify simulator/device startup, font appearance, native permissions, maps, or external directions. On each installed build, confirm that the preview loads in its bundled fonts, saving changes the visible saved state, and Reset restores it.
+Exports verify that both platform bundles and bundled assets resolve. They do not verify simulator/device startup, font appearance, native permissions, maps, or external directions. On each installed build, verify discovery, manual search after location denial, detail, and external directions. The `/preview` reference still supports its save/reset interaction. See [native smoke checks](docs/development/native-smoke.md).
 
 Missing icon and favicon references have been removed. Expo currently supplies default app icons; approved native branding remains a separate prerequisite.
 

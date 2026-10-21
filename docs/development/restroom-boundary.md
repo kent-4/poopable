@@ -1,0 +1,13 @@
+# Restroom feature boundary
+
+`src/features/restrooms/types.ts` is the shared frontend/service contract. Domain timestamps are epoch milliseconds; Firestore adapters convert Timestamp values at their boundary. Public author names never include email. Optional review answers remain absent, never defaulted to false when reading historical data.
+
+`RestroomExperienceProvider` takes `ExperienceDependencies`; `useRestroomExperience()` exposes the current snapshot, search/setSearch, visitor, dependencies, now, refreshing/error/lastRefreshed, and refresh(). It retains search and filters above route screens. `DiscoveryScreen` takes `onOpen(id)` and `onAccount()` callbacks so navigation remains the Router adapter. `DetailScreen` takes restroomId, onBack(), and onContribute({restroomId,action}). Route files implement Expo Router navigation.
+
+Account and contribution screens can call repository saveReview / submitReport / flagContribution, then refresh() after persistence. Authentication methods publish current visitor through subscribe(). Contribution routes are `/account`, `/restroom/[id]/review`, and `/restroom/[id]/report`. Auth return params carry only the restroom ID and action; successful auth must never auto-submit.
+
+The repository snapshot is a bounded outside-boundary input for the first curated catalog, not a promise of an unbounded production collection listener. Service adapters must restrict catalog size and contribution pages; frontend history shows ten records per page. Future large-catalog search should extend this same repository boundary with radius queries and opaque continuation. No persistent offline cache or queued writes is implied.
+
+`EXPO_PUBLIC_DATA_MODE=demo` explicitly enables isolated fictional data. An absent/unrecognized mode must show a recoverable setup state instead of loading examples or claiming live access. Native map, location, and directions remain narrow outside adapters.
+
+Rendered discovery/detail tests cover guest access with denied location, explicit manual center, separate entrances, retained access filters, numeric aggregate updates, minimum-score preservation when including desperate-times options, exact two-hour and 30-day expiry, off-radius catalog relocation, stale refresh recovery, and directions fallback. Native map rendering remains a separately injected adapter. Default setup state never treats examples as production data.
