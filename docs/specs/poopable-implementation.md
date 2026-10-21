@@ -29,5 +29,8 @@ The spec already approves testing the assembled rendered experience with injecte
 
 ## Execution record
 
-- Baseline captured; F1, F2, F3 implementation underway in isolated worktrees.
+- F1 complete: merged as `cca55f4`; lint, typecheck, Expo Doctor 20/20 and iOS/Android exports passed. Installed-build verification remains separate.
+- F3 complete: merged as `2fad1a8`; real Firestore/Auth emulator check verified public reads and rejected unauthorized writes/private reads. A temporary Java 21 runtime was used without a system-wide installation.
+- F2 test tooling and CI underway; D1 and D2 prepared in isolated worktrees, awaiting the rendered-test runner for the first red/green slice.
+- Design states and missing original-reference evidence recorded in [design handoff](../design-handoff.md).
 - No GitHub issues or PRs will be created or updated.
