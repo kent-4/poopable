@@ -12,10 +12,10 @@ import { Nunito_700Bold } from '@expo-google-fonts/nunito/700Bold';
 import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import { Nunito_400Regular_Italic } from '@expo-google-fonts/nunito/400Regular_Italic';
 import { Nunito_600SemiBold_Italic } from '@expo-google-fonts/nunito/600SemiBold_Italic';
-import { DesignPreview } from './src/screens/DesignPreview';
-import { colors } from './src/theme/tokens';
+import { Slot } from 'expo-router';
+import { colors } from '../theme/tokens';
 
-export default function App() {
+export default function RootLayout() {
   const [loaded, error] = useFonts({
     Quicksand_500Medium,
     Quicksand_600SemiBold,
@@ -38,7 +38,7 @@ export default function App() {
           </Text>
         </View>
       ) : loaded ? (
-        <DesignPreview />
+        <Slot />
       ) : (
         <View style={styles.center}>
           <ActivityIndicator
