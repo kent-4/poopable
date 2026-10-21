@@ -10,14 +10,14 @@ Use Node 24 and Java 21 or later. From the repository root:
 
 ```sh
 node --test scripts/service/config.test.mjs
-npx firebase-tools emulators:exec --project demo-poopable --only firestore,auth 'node --test scripts/service/emulator.test.mjs'
+npx firebase-tools@15.34.0 emulators:exec --project demo-poopable --only firestore,auth 'node --test scripts/service/emulator.test.mjs'
 ```
 
-The CLI downloads the emulator on first use and needs network access. `emulators:exec` starts a fresh in-memory instance, runs the check, and stops it. Re-run the command to reset. For an interactive session, run `npx firebase-tools emulators:start --project demo-poopable --only firestore,auth` and execute the test separately. Do not use these permissive owner-token seed operations against cloud services; the scripts reject non-demo project IDs and non-loopback addresses before making a request.
+The CLI downloads the emulator on first use and needs network access. `emulators:exec` starts a fresh in-memory instance, runs the check, and stops it. Re-run the command to reset. For an interactive session, run `npx firebase-tools@15.34.0 emulators:start --project demo-poopable --only firestore,auth` and execute the test separately. Do not use these permissive owner-token seed operations against cloud services; the scripts reject non-demo project IDs and non-loopback addresses before making a request.
 
 `.env.example` supplies local placeholders. Defaults work without copying it. To override local ports, copy to `.env.local` and run Node with `--env-file=.env.local`; change `firebase.json` to match. No privileged credentials are needed or stored. Public Firebase client settings do not grant permissions. Native devices require a separate explicitly configured host adapter; these scripts deliberately support only local loopback.
 
-The proof seeds `fictional-emulator-restroom` and a private pending fixture through the emulator-only owner token, then reads the published fixture as a guest and attempts create/update/delete and private reads without authorization. Real Firestore rules must reject those operations. Missing emulators fail the check; this is never counted as a passing skipped test.
+The proof seeds `fictional-emulator-restroom` and a private pending fixture through the emulator-only owner token, then reads the published fixture as a guest and attempts create/update/delete and private reads without authorization. It also creates an email/password account in the Auth emulator and checks that signed-in clients still cannot edit the catalog or read private moderation records. Real Firestore rules reject those operations. Missing emulators fail the check; this is never counted as a passing skipped test.
 
 ## Data and authorization boundary
 
@@ -27,6 +27,6 @@ Guests may read published records and permanently closed history; pending record
 
 ## Verification evidence
 
-Configuration guard test was observed failing before implementation and passing after implementation. The emulator authorization test was written and attempted, but cannot run in the current environment: no Java runtime is installed. Install Java 21+ and run the command above to establish the authorization evidence. This runtime dependency leaves prerequisite 4 partially verified, not complete.
+Configuration guard test was observed failing before implementation and passing after implementation. The emulator authorization check passed on 2026-10-21 with Node 24.21.0, Firebase CLI 15.34.0, Firestore emulator 1.22.0, and a temporary Temurin JDK 21.0.12.1. Both guest and authenticated catalog write attempts were rejected, pending and private reads were rejected, and the published fictional fixture was readable. Lint and typecheck also passed. The system Java installation was left unchanged; contributors still need Java 21+ to reproduce the check. No cloud service was contacted by the catalog/auth test.
 
 Primary references checked 2026-10-21: [Firestore emulator connection and demo-project isolation](https://firebase.google.com/docs/emulator-suite/connect_firestore), [Security Rules testing](https://firebase.google.com/docs/rules/unit-tests), and [email/password authentication](https://firebase.google.com/docs/auth/web/password-auth).
