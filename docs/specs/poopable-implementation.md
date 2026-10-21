@@ -31,6 +31,8 @@ The spec already approves testing the assembled rendered experience with injecte
 
 - F1 complete: merged as `cca55f4`; lint, typecheck, Expo Doctor 20/20 and iOS/Android exports passed. Installed-build verification remains separate.
 - F3 complete: merged as `2fad1a8`; real Firestore/Auth emulator check verified public reads and rejected unauthorized writes/private reads. A temporary Java 21 runtime was used without a system-wide installation.
-- F2 test tooling and CI underway; D1 and D2 prepared in isolated worktrees, awaiting the rendered-test runner for the first red/green slice.
+- F2 complete: merged as `80e6440`; save/reset interaction passed, deliberately incorrect visible-state assertion failed, and clean `npm ci` verified the lockfile. CI definition is local and has not been published.
+- D1 screen slices underway with the installed runner. D2 native adapters merged as `f175a87`; combined validation follows D1 type and screen integration. Native installed-build smoke remains pending.
+- C1 account/contribution screens and C2 Firebase adapter/authorization work underway independently against the shared restroom boundary.
 - Design states and missing original-reference evidence recorded in [design handoff](../design-handoff.md).
 - No GitHub issues or PRs will be created or updated.
