@@ -4,7 +4,7 @@ Run `npm ci`, then `npm test` from the repository root. For the complete pull-re
 
 The rendered `DesignPreview` screen is the agreed testing seam. Its interaction test presses **Save this example**, verifies the visible saved label and accessible unsave action, then presses **Reset preview** and verifies the original state. It renders the actual UI components without mocking application internals, asserting style objects, or depending on the routing entry point.
 
-The SDK 58-compatible `jest-expo` preset supplies native boundary mocks. React Native Testing Library 14 uses its React 19-compatible renderer; no deprecated `react-test-renderer` dependency is needed. Watchman is disabled so checks also run on machines without its service or filesystem permissions.
+The SDK 58-compatible `jest-expo` preset supplies native boundary mocks. React Native Testing Library 14 uses its React 19-compatible renderer; no deprecated `react-test-renderer` dependency is needed. Service checks in `scripts/service/` use Node’s separate test runner and are excluded from Jest; see [the emulator guide](development/firebase-emulators.md). Watchman is disabled so checks also run on machines without its service or filesystem permissions.
 
 The GitHub Actions workflow installs the committed npm lockfile with Node 24 and runs lint, typecheck, and tests on pull requests and pushes to main. It requires no production credentials, signing, or paid services. Creating the workflow locally does not publish or run it on GitHub.
 

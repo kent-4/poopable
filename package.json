@@ -51,6 +51,10 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
-    "watchman": false
+    "watchman": false,
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/scripts/service/"
+    ]
   }
 }
