@@ -13,7 +13,7 @@ An entry describing one particular restroom.
 _Avoid_: Business listing, building listing
 
 **Review**:
-One signed-in visitor's editable assessment of a restroom they have used, containing an overall rating and optional written feedback. It may also contain separate scores for cleanliness, supplies, and facility condition.
+One signed-in visitor's editable assessment of a restroom they have used, containing an overall rating and optional written feedback. It may also contain separate scores for cleanliness, supplies, and facility condition, and a separate desperate-times assessment.
 _Avoid_: Recommendation (when referring to user feedback)
 
 **Recommendation**:
@@ -79,3 +79,10 @@ A reported condition in which a restroom is not open for use at the time of obse
 
 **Out of service**:
 A reported condition in which a restroom cannot be used because its facilities are not functioning.
+
+**Desperate-times assessment**:
+A visitor's judgment that they would use a restroom only when urgently needed despite poor maintenance or a low-quality experience. It is separate from the numerical rating and does not establish whether the facility is currently usable.
+_Avoid_: Closed, out of service, sanitation certification
+
+**Include desperate-times options**:
+A search preference that permits desperate-times options to appear alongside other matching restrooms. It preserves access requirements and usability rules rather than making an inaccessible or nonfunctional facility suitable.
