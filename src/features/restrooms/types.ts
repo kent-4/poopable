@@ -51,6 +51,21 @@ export type CatalogSnapshot = {
   restrooms: Restroom[];
   reviews: Review[];
   reports: UsabilityReport[];
+  reviewSummaries?: Record<string, ReviewSummary>;
+};
+export type ScoreSummary = { value: number | null; count: number };
+export type ReviewSummary = {
+  overall: ScoreSummary;
+  cleanliness: ScoreSummary;
+  supplies: ScoreSummary;
+  facilityCondition: ScoreSummary;
+  desperate: {
+    flagged: number;
+    total: number;
+    latestAt: number | null;
+    expiresAt: number | null;
+  };
+  asOf: number;
 };
 export type Visitor = { id: string; displayName: string; moderator?: boolean };
 export type ReviewInput = Pick<
@@ -75,7 +90,7 @@ export type HistoryCursor = {
 };
 export type HistoryPage<T> = { items: T[]; next: HistoryCursor | null };
 export interface RestroomRepository {
-  load(): Promise<CatalogSnapshot>;
+  load(now?: number): Promise<CatalogSnapshot>;
   loadReviews(
     restroomId: string,
     cursor?: HistoryCursor,

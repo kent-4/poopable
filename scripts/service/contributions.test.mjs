@@ -160,14 +160,16 @@ test(
       await owner.suppress('review', reviews[0].id);
       snapshot = await repository.load();
       assert.equal(
-        snapshot.reviews.some((item) => item.id === reviews[0].id),
+        (
+          await repository.loadReviews('fictional-emulator-restroom')
+        ).items.some((item) => item.id === reviews[0].id),
         false,
       );
       await owner.suppress('review', reviews[0].id, false);
       assert.equal(
-        (await repository.load()).reviews.find(
-          (item) => item.id === reviews[0].id,
-        ).overall,
+        (
+          await repository.loadReviews('fictional-emulator-restroom')
+        ).items.find((item) => item.id === reviews[0].id).overall,
         2,
       );
       const imported = {

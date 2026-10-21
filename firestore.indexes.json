@@ -4,18 +4,170 @@
       "collectionGroup": "reviews",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "restroomId", "order": "ASCENDING" },
-        { "fieldPath": "suppressed", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "reports",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "restroomId", "order": "ASCENDING" },
-        { "fieldPath": "suppressed", "order": "ASCENDING" },
-        { "fieldPath": "observedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "observedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "overall",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "cleanliness",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "supplies",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "facilityCondition",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "desperateTimes",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "desperateTimes",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "restroomId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "suppressed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "authorId",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],

@@ -25,6 +25,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { historyPageSize, validateHistoryCursor } from './history.ts';
+import { loadRestroomContributions } from './firebaseSummary.ts';
 import type {
   Authentication,
   RestroomRepository,
@@ -36,7 +37,7 @@ import type {
   HistoryPage,
 } from './types';
 
-/** All contributions are read for accurate aggregation, with an explicit bounded-catalog failure. */
+/** Bounded catalog with service-side aggregates and separate contribution history pages. */
 export function createFirebaseServices(
   auth: Auth,
   db: Firestore,
@@ -183,26 +184,38 @@ export function createFirebaseServices(
           restroomId,
           cursor,
         ),
-      load: async () => {
-        const [restrooms, reviews, reports] = await Promise.all([
-          readAll(
-            'restrooms',
-            [where('state', 'in', ['published', 'permanently-closed'])],
-            200,
-          ),
-          readAll('reviews', [where('suppressed', '==', false)], 2000),
-          readAll('reports', [where('suppressed', '==', false)], 2000),
-        ]);
+      load: async (now = Date.now()) => {
+        const restrooms = await readAll(
+          'restrooms',
+          [where('state', 'in', ['published', 'permanently-closed'])],
+          200,
+        );
+        const authorId = auth.currentUser?.uid;
+        const contributions: Awaited<
+          ReturnType<typeof loadRestroomContributions>
+        >[] = [];
+        // Limit facility concurrency; each facility uses only bounded document reads and index aggregates.
+        for (let offset = 0; offset < restrooms.length; offset += 4) {
+          contributions.push(
+            ...(await Promise.all(
+              restrooms
+                .slice(offset, offset + 4)
+                .map((restroom) =>
+                  loadRestroomContributions(db, restroom.id, now, authorId),
+                ),
+            )),
+          );
+        }
         return {
           restrooms: restrooms as Restroom[],
-          reviews: reviews.map((value) => ({
-            ...value,
-            updatedAt: timestamp(value.updatedAt),
-          })) as Review[],
-          reports: reports.map((value) => ({
-            ...value,
-            observedAt: timestamp(value.observedAt),
-          })) as UsabilityReport[],
+          reviews: contributions.flatMap((value) => value.reviews),
+          reports: contributions.flatMap((value) => value.reports),
+          reviewSummaries: Object.fromEntries(
+            restrooms.map((restroom, index) => [
+              restroom.id,
+              contributions[index].summary,
+            ]),
+          ),
         };
       },
       saveReview: async (restroomId, input) => {

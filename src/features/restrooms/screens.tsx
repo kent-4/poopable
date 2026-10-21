@@ -131,6 +131,7 @@ function ResultCard({
       {info.desperate.classified && (
         <AppText>{`Desperate-times option · ${info.desperate.flagged} of ${info.desperate.total} recent answers`}</AppText>
       )}
+      {info.desperate.pending && <AppText>Assessment needs refresh</AppText>}
       <Button
         label={`Details for ${restroom.name}`}
         onPress={() => onOpen(restroom.id)}
@@ -748,12 +749,20 @@ export function DetailScreen({
             ),
           )}
           <AppText>
-            {info.desperate.classified
-              ? 'Desperate-times option'
-              : 'Insufficient evidence for a desperate-times classification'}
+            {info.desperate.pending
+              ? 'Assessment needs refresh'
+              : info.desperate.classified
+                ? 'Desperate-times option'
+                : 'Insufficient evidence for a desperate-times classification'}
           </AppText>
-          <AppText>{`${info.desperate.flagged} flagged of ${info.desperate.total} explicit answers in the past 30 days`}</AppText>
-          {info.desperate.latestAt !== null && (
+          {info.desperate.pending ? (
+            <AppText>
+              Recent assessment counts are unavailable until refreshed.
+            </AppText>
+          ) : (
+            <AppText>{`${info.desperate.flagged} flagged of ${info.desperate.total} explicit answers in the past 30 days`}</AppText>
+          )}
+          {!info.desperate.pending && info.desperate.latestAt !== null && (
             <AppText>{`Latest assessment ${new Date(info.desperate.latestAt).toLocaleString()}`}</AppText>
           )}
           <AppText>

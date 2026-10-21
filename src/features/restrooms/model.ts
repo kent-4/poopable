@@ -39,6 +39,7 @@ export function assessment(
   now: number,
 ) {
   const reviews = currentReviews(snapshot.reviews, restroom.id);
+  const summary = snapshot.reviewSummaries?.[restroom.id];
   const values = (
     key: 'overall' | 'cleanliness' | 'supplies' | 'facilityCondition',
   ) =>
@@ -51,6 +52,7 @@ export function assessment(
   const average = (
     key: 'overall' | 'cleanliness' | 'supplies' | 'facilityCondition',
   ) => {
+    if (summary) return summary[key];
     const scores = values(key);
     return {
       value: scores.length
@@ -65,7 +67,15 @@ export function assessment(
       r.updatedAt <= now &&
       now - r.updatedAt < 30 * 86400000,
   );
-  const flagged = answers.filter((r) => r.desperateTimes).length;
+  const flagged =
+    summary?.desperate.flagged ??
+    answers.filter((r) => r.desperateTimes).length;
+  const total = summary?.desperate.total ?? answers.length;
+  const pending =
+    !!summary &&
+    (summary.asOf > now ||
+      (summary.desperate.expiresAt !== null &&
+        now >= summary.desperate.expiresAt));
   const reports = snapshot.reports
     .filter(
       (r) =>
@@ -78,6 +88,7 @@ export function assessment(
   const opening = openingState(restroom, now);
   const eligible =
     restroom.state === 'published' &&
+    !pending &&
     opening !== 'closed' &&
     (!recent || recent.state === 'usable');
   return {
@@ -92,9 +103,12 @@ export function assessment(
     facilityCondition: average('facilityCondition'),
     desperate: {
       flagged,
-      total: answers.length,
-      classified: answers.length >= 3 && flagged > answers.length / 2,
-      latestAt: answers[0]?.updatedAt ?? null,
+      total,
+      classified: !pending && total >= 3 && flagged > total / 2,
+      latestAt: summary
+        ? summary.desperate.latestAt
+        : (answers[0]?.updatedAt ?? null),
+      pending,
     },
   };
 }
@@ -140,7 +154,8 @@ export function discover(
         (f.gender === 'any' || r.attributes.gender === f.gender) &&
         (f.minimumScore === null ||
           (a.overall.value !== null && a.overall.value >= f.minimumScore)) &&
-        (f.includeDesperate || !a.desperate.classified)
+        (f.includeDesperate ||
+          (!a.desperate.pending && !a.desperate.classified))
       );
     })
     .sort(

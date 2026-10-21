@@ -98,7 +98,7 @@ type ContributionProps = {
   onAuthenticate(): void;
 };
 export function ReviewScreen(props: ContributionProps) {
-  const { visitor, snapshot, refreshing, error, refresh } =
+  const { visitor, snapshot, refreshing, error, refresh, snapshotVisitorId } =
     useRestroomExperience();
   const restroom = snapshot.restrooms.find(
     (item) => item.id === props.restroomId && item.state !== 'pending',
@@ -113,6 +113,18 @@ export function ReviewScreen(props: ContributionProps) {
           variant="secondary"
           onPress={props.onBack}
         />
+      </Frame>
+    );
+  if (snapshotVisitorId !== visitor.id)
+    return (
+      <Frame>
+        <AppText accessibilityRole={error ? 'alert' : undefined}>
+          {error ?? 'Loading your review…'}
+        </AppText>
+        {!refreshing && (
+          <Button label="Retry your review" onPress={() => void refresh()} />
+        )}
+        <Button label="Back to restroom" onPress={props.onBack} />
       </Frame>
     );
   if (!restroom)

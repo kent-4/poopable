@@ -31,18 +31,25 @@ function useExperience(dependencies: ExperienceDependencies) {
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<number | null>(null);
   const [revision, setRevision] = useState(0);
+  const [snapshotVisitorId, setSnapshotVisitorId] = useState<string | null>(
+    null,
+  );
   const request = useRef(0);
+  const visitorId = useRef(visitor?.id ?? null);
+  const attemptedSummaryRefresh = useRef<string | null>(null);
   const refresh = useCallback(async () => {
     const version = ++request.current;
     setRefreshing(true);
     setError(null);
+    const authorId = dependencies.auth.current()?.id ?? null;
     try {
-      const data = await dependencies.repository.load();
+      const data = await dependencies.repository.load(dependencies.clock.now());
       if (version === request.current) {
         setSnapshot(data);
         setNow(dependencies.clock.now());
         setLastRefreshed(dependencies.clock.now());
         setRevision((value) => value + 1);
+        setSnapshotVisitorId(authorId);
       }
     } catch (error) {
       if (version === request.current)
@@ -66,7 +73,39 @@ function useExperience(dependencies: ExperienceDependencies) {
       cancelRequests();
     };
   }, [refresh, cancelRequests]);
-  useEffect(() => dependencies.auth.subscribe(setVisitor), [dependencies]);
+  useEffect(
+    () =>
+      dependencies.auth.subscribe((next) => {
+        setVisitor(next);
+        const nextId = next?.id ?? null;
+        if (nextId !== visitorId.current) {
+          visitorId.current = nextId;
+          void refresh();
+        }
+      }),
+    [dependencies, refresh],
+  );
+  useEffect(() => {
+    const expired = Object.entries(snapshot.reviewSummaries ?? {}).filter(
+      ([, summary]) =>
+        summary.asOf > now ||
+        (summary.desperate.expiresAt !== null &&
+          summary.desperate.expiresAt <= now),
+    );
+    if (!expired.length) {
+      attemptedSummaryRefresh.current = null;
+      return;
+    }
+    const key = expired
+      .map(
+        ([id, summary]) =>
+          `${id}:${summary.asOf}:${summary.desperate.expiresAt}`,
+      )
+      .join('|');
+    if (attemptedSummaryRefresh.current === key) return;
+    attemptedSummaryRefresh.current = key;
+    void refresh();
+  }, [snapshot.reviewSummaries, now, refresh]);
   useEffect(() => {
     const tick = () => setNow(dependencies.clock.now());
     const unsubscribe = dependencies.clock.subscribe?.(tick);
@@ -85,6 +124,9 @@ function useExperience(dependencies: ExperienceDependencies) {
     const future = [
       ...snapshot.reviews.map((review) => review.updatedAt + 30 * 86400000),
       ...snapshot.reports.map((report) => report.observedAt + 2 * 3600000),
+      ...Object.values(snapshot.reviewSummaries ?? {}).map(
+        (summary) => summary.desperate.expiresAt ?? Infinity,
+      ),
       Math.floor(now / 60000) * 60000 + 60000,
     ].filter((time) => time > now);
     const next = Math.min(...future);
@@ -105,6 +147,7 @@ function useExperience(dependencies: ExperienceDependencies) {
     error,
     lastRefreshed,
     revision,
+    snapshotVisitorId,
     refresh,
   };
 }
