@@ -1,6 +1,6 @@
 # Poopable V1: find, assess, and review a nearby restroom
 
-Status: draft for owner review; unpublished. Scope, proposed defaults, and testing boundaries require approval before implementation or GitHub publication.
+Status: owner-approved on 2026-10-21; unpublished. V1 scope, desperate-times rules, recommendation defaults, Firebase/email-password authentication direction, and testing approach are approved. GitHub publication requires separate authorization.
 
 ## Problem Statement
 
@@ -10,11 +10,11 @@ Someone who needs a restroom cannot quickly tell which nearby facility they can 
 
 Deliver an iOS and Android app centered on one complete journey: find nearby restrooms on a map or list, assess a specific facility, and open directions. Guests can complete that journey without an account or location permission. Signed-in visitors can leave or edit a review and submit a timestamped usability report.
 
-Start with a small, owner-curated catalog in a declared launch area. This spec proposes deferring public listing submissions and correction workflows to a follow-up release; their agreed domain definitions still apply to the longer-term product.
+Start with a small, owner-curated catalog in a declared launch area. Defer public listing submissions and correction workflows to a follow-up release; their agreed domain definitions still apply to the longer-term product.
 
 Use the three supplied Stitch screenshots as layout references for Map Home, Restroom Detail, and Rate This Restroom. Preserve the established warm eucalyptus palette, aqua accents, Quicksand headings, Nunito body text, rounded surfaces, pill controls, and gentle shadows. Screenshot sample names, photos, counts, claims, and scores are examples, not launch data.
 
-### Proposed V1 scope
+### Approved V1 scope
 
 - Map and list discovery, manual search location, distance expansion, and relevant filters.
 - Restroom detail, recommendation ordering, opening information, access conditions, and observed usability.
@@ -24,14 +24,14 @@ Use the three supplied Stitch screenshots as layout references for Map Home, Res
 - Usability reporting and a way to flag inappropriate reviews or reports for owner handling.
 - External directions to the entrance location; no in-app route calculation or invented walking ETA.
 
-### Clarifications requiring approval
+### Approved screenshot clarifications
 
-These are proposals, not additions to the agreed glossary yet.
+These decisions bound V1 implementation; the glossary retains the broader product vocabulary.
 
 | Screenshot concept                                   | Proposed V1 treatment                                                                                                                                                                                                                                                                                |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sanitation tiers / Sanctuary Grade / Pristine Choice | Defer automatic tiers. Show numeric overall and dimension scores with counts. No score thresholds or sanitation certification have been agreed. Keep tier colors available for later design work.                                                                                                    |
-| Desperate Times Only toggle                          | Include both agreed controls: a visitor assessment in the review and an “Include desperate-times options” search preference. This describes a last-resort quality trade-off, not closure or failed usability. Classification, freshness, and search defaults below are proposals requiring approval. |
+| Desperate Times Only toggle                          | Include both agreed controls: a visitor assessment in the review and an “Include desperate-times options” search preference. This describes a last-resort quality trade-off, not closure or failed usability. Classification, freshness, and search defaults below are approved. |
 | Highly Recommended                                   | Use recommendation ordering and a neutral “Recommended for your search” label where applicable; do not equate an app recommendation with a sanitation tier or guarantee.                                                                                                                             |
 | Overall Cleanliness Rating                           | Change the required field to “Overall experience.” Optional cleanliness, supplies, and facility-condition ratings follow the glossary.                                                                                                                                                               |
 | Fresh Scent / Water Flow / Door & Privacy            | Defer these additional scoring dimensions and aroma categories. Do not silently substitute them for the three agreed dimensions.                                                                                                                                                                     |
@@ -90,8 +90,8 @@ These are proposals, not additions to the agreed glossary yet.
 - The existing app provides theme tokens, bundled fonts, basic native components, and a design preview. Discovery, accounts, persistence, recommendation logic, and production navigation are not implemented. Installed libraries are not evidence of configured services.
 - Use Expo Router for navigation, as required by the repository. Replace the design preview as the default launch experience; retain it as a development reference.
 - Keep one cohesive restroom feature boundary responsible for discovery, detail, reviews, and reports. Screens should consume domain-facing operations rather than query storage independently.
-- Use existing location, map, and Firebase dependencies where compatible and suitable. Propose Firebase Authentication and Firestore for accounts and persistence, subject to environment setup and SDK compatibility verification before implementation. Do not add overlapping state, styling, or navigation libraries by default.
-- All proposed technical contracts describe behavior, not a finalized backend schema. Verify current official Expo and service documentation during implementation.
+- Use existing location, map, and Firebase dependencies where compatible and suitable. Use Firebase Authentication with email/password registration, sign-in, and recovery, and Firestore for persistence, subject to environment setup and SDK compatibility verification before implementation. Do not add overlapping state, styling, or navigation libraries by default.
+- These technical contracts describe behavior, not a finalized backend schema. Verify current official Expo and service documentation during implementation.
 
 ### Screen layouts and flows
 
@@ -125,8 +125,8 @@ Contribution flow: detail → Write Review or Report Usability → authenticate 
 - The search location is independent of live device tracking. Panning the map presents “Search this area”; it does not continuously refetch on every gesture. Recenter requests foreground location only on user action or consented initial use.
 - Published catalog entries are discoverable; pending submissions are not part of this release. Permanently closed entries remain reachable through an existing detail link and clearly labelled history, but are excluded from active discovery results and recommendations.
 - Explicit required attributes must be known to match, including free entry and a minimum rating when chosen. Unrated listings fail an explicit minimum-score filter but remain eligible without it. Unknown hours and usability remain explicit, not silently treated as open or usable.
-- Proposed recommendation eligibility excludes expected-closed facilities and those whose latest recent report is closed or out of service. A recent usable report does not override expected-closed hours; display both facts without hiding the conflict. Unknown hours remain eligible with a warning. This proposal needs approval.
-- Proposed deterministic ordering: expected-open before unknown hours; within each group, direct distance ascending, recent usable observation before unknown usability when distance ties, overall score descending with unrated last only on ties, then stable listing identity. No undocumented weighted score. The distance-first trade-off follows the immediate-use goal and needs approval.
+- Recommendation eligibility excludes expected-closed facilities and those whose latest recent report is closed or out of service. A recent usable report does not override expected-closed hours; display both facts without hiding the conflict. Unknown hours remain eligible with a warning.
+- Deterministic ordering: expected-open before unknown hours; within each group, direct distance ascending, recent usable observation before unknown usability when distance ties, overall score descending with unrated last only on ties, then stable listing identity. No undocumented weighted score. The distance-first trade-off follows the immediate-use goal.
 - Map/list show the same discovered matches. Ineligible recommendations can remain in discovery, visibly labelled and placed after eligible recommendations, so a visitor can inspect conflicting reports. Do not label these rows “recommended.”
 - Opening calculations use the restroom's timezone and support overnight periods. Missing or ambiguous hours produce unknown opening status. Distances and scores use consistent display rounding without using rounded values for filtering.
 
@@ -135,8 +135,8 @@ Contribution flow: detail → Write Review or Report Usability → authenticate 
 - Agreed meaning: a last-resort restroom someone may choose urgently despite low ratings or poor maintenance. Low rating alone never sets this classification, and a flag never changes a restroom's usability report, hours, or access conditions.
 - Agreed review control: a separate “I would only use this restroom in desperate times” switch. New reviews start off, with text explaining that enabling it records that assessment; editing preserves the saved value. The service stores the boolean separately from all numerical scores. Historical reviews with no such answer remain unanswered rather than becoming negative votes.
 - Agreed discovery control: “Include desperate-times options,” shared across map/list and retained with the current search. Show a clear last-resort label when an option is classified; its detail shows assessment counts and timestamps. Individual flagged reviews remain visible even when the facility has insufficient evidence for classification.
-- Proposed classification, pending approval: use each visitor's single current, non-suppressed review updated within the previous 30 days and containing an explicit answer. At least three such answers and a strict majority flagged true classify the facility as a desperate-times option. A tie or fewer than three answers means insufficient evidence, not a positive claim of quality. Show the number flagged and total answers; re-evaluate after edits, suppression, and expiry. This 30-day quality window is independent of the two-hour usability window.
-- Proposed search default, pending approval: inclusion is off. Off excludes classified desperate-times facilities from active map/list results and recommendations, while direct detail links remain available. On adds classified facilities that satisfy the same query, radius, explicit filters, and access requirements; group ordinary eligible recommendations before eligible last-resort options, then apply the existing ordering within each group.
+- Classification: use each visitor's single current, non-suppressed review updated strictly less than 30 days ago and containing an explicit answer. At least three such answers and a strict majority flagged true classify the facility as a desperate-times option. A tie or fewer than three answers means insufficient evidence, not a positive claim of quality. Show the number flagged and total answers; re-evaluate after edits, suppression, and expiry. This 30-day quality window is independent of the two-hour usability window.
+- Search default: inclusion is off. Off excludes classified desperate-times facilities from active map/list results and recommendations, while direct detail links remain available. On adds classified facilities that satisfy the same query, radius, explicit filters, and access requirements; group ordinary eligible recommendations before eligible last-resort options, then apply the existing ordering within each group.
 - Turning inclusion on does not erase an explicitly chosen minimum rating: a low-rated option below that threshold remains excluded until the visitor changes the rating filter. No filter is silently relaxed. An empty state may offer inclusion and explain any still-active constraints.
 - Closed, out-of-service, or permanently closed facilities remain ineligible for recommendation regardless of this preference. Discovery can still show temporary closure information under the existing discovery rules; the toggle never relabels it as usable. Unknown usability remains unknown, including for last-resort options.
 - Reuse the urgent control's visual styling, replacing preview copy with the correct context-specific labels, state, and explanation. No changes to the live design preview are part of this specification update.
@@ -185,7 +185,7 @@ Contribution flow: detail → Write Review or Report Usability → authenticate 
 9. Given a guest selecting Write Review, successful authentication returns to the intended form; cancelling returns without posting. Existing reviewers edit instead of adding another review.
 10. Given invalid scores or notes exceeding 2,000 characters, submission is rejected accessibly; retry after network failure preserves input and does not duplicate a successful save.
 11. Given a permanently closed facility, it never appears in active discovery or recommendations; an existing direct detail link explains permanent closure and preserves available history.
-12. Given unknown hours or conflicting opening/report information, show the uncertainty and apply the proposed eligibility rules exactly; never label the facility confirmed open merely from hours.
+12. Given unknown hours or conflicting opening/report information, show the uncertainty and apply the approved eligibility rules exactly; never label the facility confirmed open merely from hours.
 13. Given a directions action, open the selected facility entrance in an external map app, without displaying a fabricated walking ETA; a missing handler offers copyable destination details.
 14. Given unauthorized catalog or another visitor's review writes, the service rejects the request even if the app interface is bypassed. Moderation flags and account email are inaccessible to guests.
 15. Given offline discovery, map-provider failure, empty results, missing detail, or failed submission, show the specified recovery state without blank screens or false success.
@@ -193,25 +193,25 @@ Contribution flow: detail → Write Review or Report Usability → authenticate 
 17. Given the screenshots and existing theme, all core screens retain eucalyptus/aqua colors, Quicksand/Nunito typography, pill controls, rounded cards, and safe-area-aware layouts, without screenshot sample claims or dead controls.
 
 18. Given a review with a desperate-times flag, saving or editing it changes neither its star rating nor the facility's usability; show the visitor assessment separately.
-19. Given the proposed aggregation policy is approved, two flagged answers out of three recent explicit answers classify a listing; one out of two, a tie, unanswered historical reviews, and fewer than three answers do not. Editing, suppressing, or expiring an answer recomputes the classification without adding another vote.
+19. Given the approved aggregation policy, two flagged answers out of three recent explicit answers classify a listing; one out of two, a tie, unanswered historical reviews, and fewer than three answers do not. Editing, suppressing, or expiring an answer recomputes the classification without adding another vote.
 20. Given inclusion is off, classified facilities are excluded from active search results; turning it on includes only those meeting all remaining filters. Map/list agree and back navigation preserves the preference.
 21. Given a flagged facility is closed, out of service, inaccessible for a required need, below an explicit minimum score, or permanently closed, enabling inclusion does not make it an eligible recommendation. Low stars alone never create a desperate-times classification.
-22. Given insufficient classification evidence, show the observed counts with uncertainty and no claim that the facility is well maintained. At the proposed 30-day boundary, an answer stops contributing without altering its separate review or two-hour usability history.
+22. Given insufficient classification evidence, show the observed counts with uncertainty and no claim that the facility is well maintained. At the 30-day boundary, an answer stops contributing without altering its separate review or two-hour usability history.
 
 ## Testing Decisions
 
-- Proposed main testing boundary: the assembled restroom experience, driven through rendered screens and user actions. Inject controlled catalog/review/report operations, authentication state, location results, clock, and external directions at the feature's outside boundary. Exercise real recommendation and aggregation behavior rather than mocking their internal functions.
+- Main testing boundary: the assembled restroom experience, driven through rendered screens and user actions. Inject controlled catalog/review/report operations, authentication state, location results, clock, and external directions at the feature's outside boundary. Exercise real recommendation and aggregation behavior rather than mocking their internal functions.
 - Cover discovery, filters, map/list synchronization, detail, authentication return, review upsert, usability expiry, moderation visibility, desperate-times assessment persistence, classification boundaries, inclusion filtering, and recovery through this shared boundary. Keep native map rendering as a narrow adapter and verify visible result identities through the accessible list.
 - Good tests assert visible outcomes, persisted effects at the boundary, denied operations, and preserved user input. Avoid snapshots as the primary assertion, component-internal state, style-object tests, and tests mirroring implementation steps.
 - Use deterministic fixtures for a rated facility, an unrated facility, unknown access, fees, separate entrances, closed hours, permanent closure, conflicting reports, and overnight schedules. Drive the injected clock across the exact two-hour boundary without real waiting.
 - Add focused service/emulator authorization checks for public reads, review ownership, valid write data, aggregate updates, private moderation records, and owner-only catalog changes. Screen tests alone cannot establish access control.
 - Use a small device smoke suite on iOS and Android for permission denial/manual fallback, native maps, keyboard and sheet interaction, external directions, and a successful review/report save. Review each screen visually against the supplied composition using approved tokens; check large text and a screen reader manually.
 - No existing test suite, test runner, or comparable integration tests were found. Select the smallest compatible test tooling during implementation; there is no existing testing convention to claim as prior art.
-- Run repository lint and typecheck, production bundle exports, and the added meaningful tests before completion. Test boundaries are proposed for owner approval with this draft.
+- Run repository lint and typecheck, production bundle exports, and the added meaningful tests before completion. These checks apply to implementation work; this decision-only update requires lint and typecheck.
 
 ## Out of Scope
 
-- Automatic sanitation tiers and sanitation certification. The desperate-times assessment and inclusion controls are in scope as distinct concepts, subject to approval of their proposed aggregation and search defaults.
+- Automatic sanitation tiers and sanitation certification. The desperate-times assessment and inclusion controls are in scope as distinct concepts, with the approved aggregation and search defaults above.
 - Public new-listing submissions and listing-correction screens; duplicate merging and a dedicated moderator dashboard.
 - Photo galleries/uploads, aroma classification, extra sanitation scoring dimensions, local-guide status, karma, rewards, notifications, bookmarks, and sharing.
 - Third-party place autocomplete, in-app routing, walking-time estimates, indoor navigation, background location, offline map downloads, and queued offline contributions.
@@ -220,10 +220,10 @@ Contribution flow: detail → Write Review or Report Usability → authenticate 
 
 ## Further Notes
 
-The glossary remains the source of agreed domain language. This draft proposes a bounded release of that broader model; approving V1 scope does not delete future glossary concepts. New tier definitions must be agreed before being added to the glossary or enabled in the app.
+The glossary remains the source of agreed domain language. This spec defines an approved, bounded release of that broader model; V1 scope does not delete future glossary concepts. New tier definitions must be agreed before being added to the glossary or enabled in the app.
 
 The three screenshots are conversation attachments and have not been stored as repository image assets. Preserve exported originals as design reference artifacts before implementation handoff; the Stitch source identifier alone is not a local screenshot. The supplied stylesheet and native design preview are available as complementary visual references.
 
-Before implementation, confirm this scope, the deferred sanitation-tier treatment, desperate-times classification/freshness/search proposals, the recommendation defaults, and the proposed testing boundary. Service provisioning, launch catalog content, production map credentials, approved branding assets, and account-release requirements remain release dependencies, not completed setup.
+The owner approved this scope, deferred sanitation-tier treatment, desperate-times classification/freshness/search rules, recommendation defaults, and testing boundary on 2026-10-21. Service provisioning, launch catalog content, production map credentials, approved branding assets, and account-release requirements remain release dependencies, not completed setup.
 
-After owner approval, publish this spec to the configured GitHub repository with the ready-for-agent label. Do not publish this draft or create implementation tickets until authorized.
+When separately authorized, publish this approved spec to the configured GitHub repository with the ready-for-agent label. This approval completes prerequisite 1 locally; it does not authorize GitHub publication, implementation-ticket creation, or account/billing changes.
