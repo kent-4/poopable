@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { RestroomExperienceProvider } from '../features/restrooms/context';
+import { createDefaultDependencies } from '../features/restrooms/dependencies';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
@@ -16,6 +19,7 @@ import { Slot } from 'expo-router';
 import { colors } from '../theme/tokens';
 
 export default function RootLayout() {
+  const [dependencies] = useState(() => createDefaultDependencies());
   const [loaded, error] = useFonts({
     Quicksand_500Medium,
     Quicksand_600SemiBold,
@@ -38,7 +42,9 @@ export default function RootLayout() {
           </Text>
         </View>
       ) : loaded ? (
-        <Slot />
+        <RestroomExperienceProvider dependencies={dependencies}>
+          <Slot />
+        </RestroomExperienceProvider>
       ) : (
         <View style={styles.center}>
           <ActivityIndicator
