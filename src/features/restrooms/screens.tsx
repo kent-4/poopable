@@ -134,6 +134,7 @@ function ResultCard({
         label={`Details for ${restroom.name}`}
         onPress={() => onOpen(restroom.id)}
       />
+      <DirectionsAction restroom={restroom} />
     </Card>
   );
 }
@@ -811,8 +812,10 @@ export function DetailScreen({
             onPress={() => setReportPage(reportPage + 1)}
           />
         )}
-        <DirectionsAction restroom={restroom} />
       </ScrollView>
+      <View style={styles.footer}>
+        <DirectionsAction restroom={restroom} />
+      </View>
     </SafeAreaView>
   );
 }
@@ -822,6 +825,7 @@ function accessText(restroom: Restroom) {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.page },
   content: { padding: 20, gap: 16, paddingBottom: 40 },
+  footer: { paddingHorizontal: 20, paddingVertical: 12 },
   stack: { gap: 12 },
   row: {
     flexDirection: 'row',

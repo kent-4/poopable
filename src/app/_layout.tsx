@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RestroomExperienceProvider } from '../features/restrooms/context';
 import { createDefaultDependencies } from '../features/restrooms/dependencies';
+import { createConfiguredServices } from '../features/restrooms/firebaseConfiguration';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
@@ -19,7 +20,16 @@ import { Slot } from 'expo-router';
 import { colors } from '../theme/tokens';
 
 export default function RootLayout() {
-  const [dependencies] = useState(() => createDefaultDependencies());
+  const [dependencies] = useState(() => {
+    try {
+      return createDefaultDependencies(createConfiguredServices());
+    } catch (error) {
+      return createDefaultDependencies(
+        undefined,
+        error instanceof Error ? error.message : 'Unable to configure the catalog.',
+      );
+    }
+  });
   const [loaded, error] = useFonts({
     Quicksand_500Medium,
     Quicksand_600SemiBold,

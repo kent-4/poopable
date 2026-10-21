@@ -2,7 +2,9 @@
 
 Run `npm ci`, then `npm test` from the repository root. For the complete pull-request check, run `npm run lint`, `npm run typecheck`, and `npm test -- --ci`.
 
-The rendered `DesignPreview` screen is the agreed testing seam. Its interaction test presses **Save this example**, verifies the visible saved label and accessible unsave action, then presses **Reset preview** and verifies the original state. It renders the actual UI components without mocking application internals, asserting style objects, or depending on the routing entry point.
+The approved seam is the rendered restroom experience with injected repository, authentication, clock, location, and directions boundaries. Discovery/detail tests exercise access filters, classification and expiry, manual relocation, stale data, review aggregation, and late location responses. Contribution tests exercise review retry, report idempotency, registration without automatic submission, private flags, and discard confirmation. Real domain behavior runs inside this boundary; native maps stay an adapter.
+
+The `DesignPreview` reference also retains its save/reset interaction test. These checks render actual UI controls without snapshots or style-object assertions.
 
 The SDK 58-compatible `jest-expo` preset supplies native boundary mocks. React Native Testing Library 14 uses its React 19-compatible renderer; no deprecated `react-test-renderer` dependency is needed. Service checks in `scripts/service/` use Node’s separate test runner and are excluded from Jest; see [the emulator guide](development/firebase-emulators.md). Watchman is disabled so checks also run on machines without its service or filesystem permissions.
 

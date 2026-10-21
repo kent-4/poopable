@@ -32,7 +32,9 @@ The spec already approves testing the assembled rendered experience with injecte
 - F1 complete: merged as `cca55f4`; lint, typecheck, Expo Doctor 20/20 and iOS/Android exports passed. Installed-build verification remains separate.
 - F3 complete: merged as `2fad1a8`; real Firestore/Auth emulator check verified public reads and rejected unauthorized writes/private reads. A temporary Java 21 runtime was used without a system-wide installation.
 - F2 complete: merged as `80e6440`; save/reset interaction passed, deliberately incorrect visible-state assertion failed, and clean `npm ci` verified the lockfile. CI definition is local and has not been published.
-- D1 screen slices underway with the installed runner. D2 native adapters merged as `f175a87`; combined validation follows D1 type and screen integration. Native installed-build smoke remains pending.
-- C1 account/contribution screens and C2 Firebase adapter/authorization work underway independently against the shared restroom boundary.
+- D1 discovery/detail screens and deterministic domain behavior merged from `resume/discovery`, including the late-location-response regression fix. D2 native adapters are integrated with these screens. Native installed-build smoke remains pending.
+- C1 account, editable review, usability-report, and private-flag screens/routes merged from `resume/contributions`. Rendered tests cover retry, idempotency, registration return, explicit assessment defaults, and discard confirmation.
+- C2 Firebase configuration, contribution adapter, validation/ownership rules, and owner operations merged from `resume/service`. Emulator contribution checks are added but unverified in this continuation because permission to run the local emulators was declined. Cloud services remain unprovisioned.
+- C2 remains incomplete: cloud reads page through a capped catalog snapshot (200 restrooms, 2,000 reviews and 2,000 reports), then history is paginated in the UI. Radius-bounded service discovery, server-side aggregation, and facility-specific history pagination are still required; exceeding the cap produces an explicit error rather than partial scores. This development adapter does not complete production pagination.
 - Design states and missing original-reference evidence recorded in [design handoff](../design-handoff.md).
 - No GitHub issues or PRs will be created or updated.

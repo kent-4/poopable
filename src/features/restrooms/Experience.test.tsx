@@ -178,6 +178,10 @@ test('location denial keeps manual discovery and failed directions offer the exa
     screen.getByRole('button', { name: 'Search this location' }),
   );
   await fireEvent.press(
+    (await screen.findAllByRole('button', { name: 'Directions' }))[0],
+  );
+  expect(await screen.findByText(/No map handler available/)).toBeTruthy();
+  await fireEvent.press(
     await screen.findByRole('button', {
       name: 'Details for Demo Eucalyptus · Ground restroom',
     }),
