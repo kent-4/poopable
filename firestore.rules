@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catalog changes use a privileged owner import, never client configuration.
+    match /restrooms/{restroomId} {
+      allow read: if resource.data.state in ['published', 'permanently-closed'];
+      allow write: if false;
+    }
+    // Account data, drafts, moderation, and future contributions stay private
+    // until their authenticated, validated vertical slices are implemented.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
