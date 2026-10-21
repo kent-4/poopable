@@ -1,15 +1,59 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Catalog changes use a privileged owner import, never client configuration.
-    match /restrooms/{restroomId} {
-      allow read: if resource.data.state in ['published', 'permanently-closed'];
-      allow write: if false;
+    function signedIn() { return request.auth != null; }
+    function owner() { return signedIn() && request.auth.token.get('owner', false) == true; }
+    function publicRestroom(id) { return get(/databases/$(database)/documents/restrooms/$(id)).data.state in ['published', 'permanently-closed']; }
+    function score(value) { return value is int && value >= 1 && value <= 5; }
+    function identity(data) {
+      return signedIn() && data.authorId == request.auth.uid
+        && data.authorName == request.auth.token.name
+        && data.authorName is string && data.authorName.size() > 0
+        && data.authorName.size() <= 80 && !data.authorName.matches('.*@.*');
     }
-    // Account data, drafts, moderation, and future contributions stay private
-    // until their authenticated, validated vertical slices are implemented.
-    match /{document=**} {
-      allow read, write: if false;
+    function review(data, id) {
+      return data.keys().hasOnly(['restroomId', 'authorId', 'authorName', 'overall', 'cleanliness', 'supplies', 'facilityCondition', 'notes', 'desperateTimes', 'updatedAt', 'suppressed'])
+        && identity(data) && id == data.restroomId + ':' + request.auth.uid
+        && publicRestroom(data.restroomId) && score(data.overall)
+        && (!('cleanliness' in data) || score(data.cleanliness))
+        && (!('supplies' in data) || score(data.supplies))
+        && (!('facilityCondition' in data) || score(data.facilityCondition))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
+        && (!('desperateTimes' in data) || data.desperateTimes is bool)
+        && data.updatedAt == request.time && data.suppressed == false;
     }
+    match /restrooms/{id} {
+      allow read: if resource.data.state in ['published', 'permanently-closed'] || owner();
+      allow write: if owner();
+    }
+    match /reviews/{id} {
+      allow read: if resource.data.suppressed == false || owner();
+      allow create: if review(request.resource.data, id);
+      allow update: if (resource.data.authorId == request.auth.uid && resource.data.suppressed == false && review(request.resource.data, id))
+        || (owner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['suppressed']) && request.resource.data.suppressed is bool);
+    }
+    match /reports/{id} {
+      allow read: if resource.data.suppressed == false || owner() || (signedIn() && resource.data.authorId == request.auth.uid);
+      // A missing document must be readable for an authenticated retry transaction.
+      allow get: if signedIn() && id.matches(request.auth.uid + ':.*');
+      allow create: if request.resource.data.keys().hasOnly(['restroomId', 'authorId', 'authorName', 'state', 'observedAt', 'suppressed'])
+        && identity(request.resource.data) && id.matches(request.auth.uid + ':[a-zA-Z0-9_-]{1,128}')
+        && publicRestroom(request.resource.data.restroomId)
+        && request.resource.data.state in ['usable', 'closed', 'out-of-service']
+        && request.resource.data.observedAt == request.time && request.resource.data.suppressed == false;
+      allow update: if owner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['suppressed']) && request.resource.data.suppressed is bool;
+    }
+    match /moderationFlags/{id} {
+      allow read: if owner();
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['authorId', 'kind', 'contributionId', 'reason', 'createdAt'])
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.kind in ['review', 'report']
+        && request.resource.data.reason is string && request.resource.data.reason.size() > 0 && request.resource.data.reason.size() <= 2000
+        && request.resource.data.createdAt == request.time
+        && id == request.auth.uid + ':' + request.resource.data.kind + ':' + request.resource.data.contributionId
+        && ((request.resource.data.kind == 'review' && exists(/databases/$(database)/documents/reviews/$(request.resource.data.contributionId)))
+          || (request.resource.data.kind == 'report' && exists(/databases/$(database)/documents/reports/$(request.resource.data.contributionId))));
+    }
+    match /{document=**} { allow read, write: if false; }
   }
 }
