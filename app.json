@@ -15,7 +15,16 @@
     "plugins": [
       "expo-font",
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Poopable uses your location only when you choose Use current location to find nearby restrooms. You can choose an area manually instead.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ]
     ],
     "scheme": "poopable"
   }
