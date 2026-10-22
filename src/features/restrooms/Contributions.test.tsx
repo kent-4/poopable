@@ -231,3 +231,38 @@ test('editing replaces the existing vote and back navigation protects unsaved no
     desperateTimes: true,
   });
 });
+
+test('review ratings expose selected numeric choices and visible star controls', async () => {
+  const deps = await setup();
+  await render(
+    <RestroomExperienceProvider dependencies={deps}>
+      <ReviewScreen
+        restroomId="demo-ground"
+        onBack={() => {}}
+        onAuthenticate={() => {}}
+        onSuccess={() => {}}
+      />
+    </RestroomExperienceProvider>,
+  );
+  await screen.findByText('Demo Eucalyptus · Ground restroom');
+  expect(screen.getAllByText('☆')).toHaveLength(20);
+  await fireEvent.press(screen.getByRole('button', { name: 'Submit review' }));
+  expect(
+    screen.getByRole('alert', {
+      name: 'Choose an overall experience from 1 to 5.',
+    }),
+  ).toBeTruthy();
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Overall experience 3 stars' }),
+  );
+  expect(
+    screen.getByRole('button', {
+      name: 'Overall experience 3 stars',
+      selected: true,
+    }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByText('Choose an overall experience from 1 to 5.'),
+  ).toBeNull();
+  expect(screen.getAllByText('★')).toHaveLength(3);
+});

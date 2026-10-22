@@ -6,6 +6,7 @@ import type { Coordinates, Restroom } from '../types';
 import { colors, fonts } from '../../../theme/tokens';
 
 export type RestroomMapProps = {
+  fullScreen?: boolean;
   center: Coordinates | null;
   radiusKm: number;
   restrooms: Restroom[];
@@ -126,9 +127,9 @@ function MapSurface(props: RestroomMapProps) {
   if (!providerAvailable || failed) return <Fallback onShowList={onShowList} />;
   return (
     <MapBoundary onShowList={onShowList}>
-      <View style={styles.container}>
+      <View style={[styles.container, props.fullScreen && styles.fullScreen]}>
         <MapView
-          style={styles.map}
+          style={[styles.map, props.fullScreen && styles.fullScreen]}
           region={region}
           onMapReady={() => setReady(true)}
           showsUserLocation={false}
@@ -195,16 +196,17 @@ function MapSurface(props: RestroomMapProps) {
 const styles = StyleSheet.create({
   container: { minHeight: 300, flex: 1 },
   map: { flex: 1, minHeight: 260 },
+  fullScreen: { flex: 1, minHeight: 0 },
   controls: {
     position: 'absolute',
-    top: 12,
+    bottom: 24,
     left: 12,
     right: 12,
     alignItems: 'center',
     gap: 8,
   },
   action: {
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 14,
@@ -226,8 +228,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.subtle,
   },
   marker: {
-    minWidth: 32,
-    minHeight: 32,
+    minWidth: 48,
+    minHeight: 48,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.primary,

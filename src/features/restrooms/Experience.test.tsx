@@ -326,3 +326,30 @@ test('a late location response cannot replace a newer manually chosen search are
   ).toBeTruthy();
   expect(screen.getByText('Demo Eucalyptus · Ground restroom')).toBeTruthy();
 });
+
+test('discovery dock opens account and preserves filters across map and list', async () => {
+  let accountOpened = false;
+  await render(
+    <RestroomExperienceProvider dependencies={dependencies()}>
+      <DiscoveryScreen
+        onOpen={() => {}}
+        onAccount={() => {
+          accountOpened = true;
+        }}
+        MapComponent={() => null}
+      />
+    </RestroomExperienceProvider>,
+  );
+  await screen.findByText('Demo Eucalyptus · Ground restroom');
+  await fireEvent.press(screen.getByRole('button', { name: '2 km radius' }));
+  await fireEvent.press(screen.getByRole('tab', { name: 'List' }));
+  expect(
+    screen.getByRole('button', { name: '2 km radius', selected: true }),
+  ).toBeTruthy();
+  await fireEvent.press(screen.getByRole('tab', { name: 'Map' }));
+  expect(
+    screen.getByRole('button', { name: '2 km radius', selected: true }),
+  ).toBeTruthy();
+  await fireEvent.press(screen.getByRole('tab', { name: 'Account' }));
+  expect(accountOpened).toBe(true);
+});

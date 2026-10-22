@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   FlatList,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -38,6 +42,7 @@ import type {
 } from './types';
 
 export type MapAdapterProps = {
+  fullScreen?: boolean;
   center: Coordinates | null;
   radiusKm: number;
   restrooms: Restroom[];
@@ -112,14 +117,18 @@ function Rating({ info }: { info: ReturnType<typeof assessment> }) {
 function ResultCard({
   row,
   onOpen,
+  compact = false,
 }: {
+  compact?: boolean;
   row: DiscoveryResult;
   onOpen: (id: string) => void;
 }) {
   const { restroom, assessment: info, distance } = row;
   return (
-    <Card>
-      <AppText variant="subtitle">{restroom.name}</AppText>
+    <Card style={compact ? { gap: 6, padding: 12 } : undefined}>
+      <AppText variant={compact ? 'heading' : 'subtitle'}>
+        {restroom.name}
+      </AppText>
       <AppText>{restroom.floor}</AppText>
       <AppText>{`${distance.toFixed(2)} km direct distance · ${accessText(restroom)}`}</AppText>
       <Rating info={info} />
@@ -271,9 +280,23 @@ export function DiscoveryScreen({
     dependencies,
   } = useRestroomExperience();
   const [filters, setFilters] = useState<Filters | null>(null);
+  const panelTitleRef = useRef<React.ComponentRef<typeof View>>(null);
   const [mode, setMode] = useState(MapComponent ? 'Map' : 'List');
   const [selectedId, setSelectedId] = useState<string>();
   const [choosingArea, setChoosingArea] = useState(!search.center);
+  const searchFieldRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const panelOpen = filters !== null || (mode === 'Map' && choosingArea);
+  useEffect(() => {
+    if (panelOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (searchFieldRef.current)
+        AccessibilityInfo.sendAccessibilityEvent(
+          searchFieldRef.current,
+          'focus',
+        );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [panelOpen]);
   const [areaLabel, setAreaLabel] = useState('Search area selected');
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -313,43 +336,17 @@ export function DiscoveryScreen({
       if (request === locationRequest.current) setLocating(false);
     }
   }
+  const brand = (
+    <View style={styles.row}>
+      <View style={styles.flex}>
+        <AppText variant="title">Poopable</AppText>
+        <AppText>Find a restroom for your search</AppText>
+      </View>
+      <Button label="Account" variant="secondary" onPress={onAccount} />
+    </View>
+  );
   const header = (
     <View style={styles.stack}>
-      <View style={styles.row}>
-        <View style={styles.flex}>
-          <AppText variant="title">Poopable</AppText>
-          <AppText>Find a restroom for your search</AppText>
-        </View>
-        <Button label="Account" variant="secondary" onPress={onAccount} />
-      </View>
-      <SegmentedDock
-        items={['Map', 'List']}
-        selected={mode}
-        onSelect={setMode}
-      />
-      {mode === 'Map' &&
-        (MapComponent ? (
-          <MapComponent
-            center={search.center}
-            radiusKm={search.radiusKm}
-            restrooms={rows.map((row) => row.restroom)}
-            selectedId={selected?.restroom.id}
-            onSelect={setSelectedId}
-            onSearchArea={chooseCenter}
-            onShowList={() => setMode('List')}
-            markerLabels={Object.fromEntries(
-              rows.map((row) => [
-                row.restroom.id,
-                `${row.restroom.name}. ${openingText(row.assessment.opening)}. ${usabilityText(row.assessment.recent)}`,
-              ]),
-            )}
-          />
-        ) : (
-          <Card>
-            <AppText>Map unavailable. The complete list is available.</AppText>
-            <Button label="Show list" onPress={() => setMode('List')} />
-          </Card>
-        ))}
       {dependencies.mode === 'demo' && (
         <AppText accessibilityRole="alert">
           Fictional demo catalog · not real facilities or visitor advice
@@ -367,6 +364,7 @@ export function DiscoveryScreen({
         </Card>
       )}
       <TextInput
+        ref={searchFieldRef}
         accessibilityLabel="Search catalog names and addresses"
         placeholder="Search names or addresses"
         value={search.query}
@@ -374,7 +372,7 @@ export function DiscoveryScreen({
         style={styles.input}
         returnKeyType="search"
       />
-      {(choosingArea || search.query.trim()) && (
+      {mode === 'List' && (choosingArea || search.query.trim()) && (
         <AreaPicker
           key={normalizedLocationQuery(search.query)}
           query={normalizedLocationQuery(search.query)}
@@ -383,7 +381,12 @@ export function DiscoveryScreen({
           }
         />
       )}
-      <View style={styles.row}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipRail}
+        keyboardShouldPersistTaps="handled"
+      >
         <Button
           label="Use my location"
           disabled={locating}
@@ -395,12 +398,7 @@ export function DiscoveryScreen({
           variant="secondary"
           onPress={() => setChoosingArea(!choosingArea)}
         />
-      </View>
-      {locationError && (
-        <AppText accessibilityRole="alert">{locationError}</AppText>
-      )}
-      {search.center && <AppText>{areaLabel}</AppText>}
-      <View style={styles.row}>
+
         {([1, 2, 5] as const).map((radiusKm) => (
           <Button
             key={radiusKm}
@@ -410,23 +408,38 @@ export function DiscoveryScreen({
             onPress={() => setSearch({ ...search, radiusKm })}
           />
         ))}
-      </View>
-      <Button
-        label="Filters"
-        variant="secondary"
-        onPress={() => setFilters({ ...search.filters })}
-      />
-      {filters && (
-        <FiltersPanel
-          value={filters}
-          onChange={setFilters}
-          onApply={() => {
-            setSearch({ ...search, filters });
-            setFilters(null);
-          }}
-          onCancel={() => setFilters(null)}
+
+        <Button
+          label="Filters"
+          variant="secondary"
+          onPress={() => setFilters({ ...search.filters })}
         />
+        {(
+          [
+            ['bidet', 'Bidet'],
+            ['free', 'Free entry'],
+            ['wheelchair', 'Wheelchair access'],
+          ] as const
+        ).map(([key, label]) => (
+          <Button
+            key={key}
+            label={label}
+            selected={search.filters[key]}
+            variant={search.filters[key] ? 'primary' : 'secondary'}
+            onPress={() =>
+              setSearch({
+                ...search,
+                filters: { ...search.filters, [key]: !search.filters[key] },
+              })
+            }
+          />
+        ))}
+      </ScrollView>
+      {locationError && (
+        <AppText accessibilityRole="alert">{locationError}</AppText>
       )}
+      {search.center && <AppText>{areaLabel}</AppText>}
+
       {refreshing && (
         <AppText accessibilityLiveRegion="polite">
           {lastRefreshed ? 'Refreshing restrooms…' : 'Loading restrooms…'}
@@ -455,31 +468,61 @@ export function DiscoveryScreen({
           available with their conditions.
         </AppText>
       )}
-      {mode === 'Map' && selected && (
-        <ResultCard row={selected} onOpen={onOpen} />
-      )}
     </View>
   );
   return (
     <SafeAreaView style={styles.page}>
-      <FlatList
-        data={mode === 'List' ? rows : []}
-        keyExtractor={(row) => row.restroom.id}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={header}
-        ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
-        ListEmptyComponent={
-          !refreshing && rows.length === 0 ? (
-            <Card>
-              <AppText variant="subtitle">
-                {search.center
-                  ? 'No matching restrooms'
-                  : 'Choose a search location'}
-              </AppText>
+      {mode === 'Map' ? (
+        <>
+          <View style={styles.brandHeader}>{brand}</View>
+          <View style={styles.mapStage}>
+            {MapComponent ? (
+              <MapComponent
+                fullScreen
+                center={search.center}
+                radiusKm={search.radiusKm}
+                restrooms={rows.map((row) => row.restroom)}
+                selectedId={selected?.restroom.id}
+                onSelect={setSelectedId}
+                onSearchArea={chooseCenter}
+                onShowList={() => setMode('List')}
+                markerLabels={Object.fromEntries(
+                  rows.map((row) => [
+                    row.restroom.id,
+                    `${row.restroom.name}. ${openingText(row.assessment.opening)}. ${usabilityText(row.assessment.recent)}`,
+                  ]),
+                )}
+              />
+            ) : (
+              <View style={styles.mapFallback}>
+                <AppText>
+                  Map unavailable. The complete list is available.
+                </AppText>
+                <Button label="Show list" onPress={() => setMode('List')} />
+              </View>
+            )}
+            <View style={styles.floatingSearch}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.floatingContent}
+              >
+                {header}
+              </ScrollView>
+            </View>
+          </View>
+          {selected ? (
+            <ScrollView
+              style={styles.selectedSummary}
+              contentContainerStyle={styles.summaryContent}
+            >
+              <ResultCard row={selected} onOpen={onOpen} compact />
+            </ScrollView>
+          ) : (
+            <View style={styles.summaryContent}>
               <AppText>
-                Expand the radius, choose another location, or reset filters.
-                Desperate-times inclusion keeps your other requirements.
+                {search.center
+                  ? 'No matching restrooms. Expand the radius, choose another location, or reset filters.'
+                  : 'Choose a search location'}
               </AppText>
               <Button
                 label="Reset search filters"
@@ -492,11 +535,133 @@ export function DiscoveryScreen({
                   })
                 }
               />
-            </Card>
-          ) : undefined
-        }
-        renderItem={({ item }) => <ResultCard row={item} onOpen={onOpen} />}
-      />
+            </View>
+          )}
+        </>
+      ) : (
+        <FlatList
+          data={rows}
+          keyExtractor={(row) => row.restroom.id}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            <View style={styles.stack}>
+              {brand}
+              {header}
+            </View>
+          }
+          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+          ListEmptyComponent={
+            !refreshing && rows.length === 0 ? (
+              <Card>
+                <AppText variant="subtitle">
+                  {search.center
+                    ? 'No matching restrooms'
+                    : 'Choose a search location'}
+                </AppText>
+                <AppText>
+                  Expand the radius, choose another location, or reset filters.
+                  Desperate-times inclusion keeps your other requirements.
+                </AppText>
+                <Button
+                  label="Reset search filters"
+                  variant="secondary"
+                  onPress={() =>
+                    setSearch({
+                      ...search,
+                      query: '',
+                      filters: { ...emptyFilters },
+                    })
+                  }
+                />
+              </Card>
+            ) : undefined
+          }
+          renderItem={({ item }) => <ResultCard row={item} onOpen={onOpen} />}
+        />
+      )}
+      <View style={styles.dockFooter}>
+        <SegmentedDock
+          items={['Map', 'List', 'Account']}
+          selected={mode}
+          onSelect={(item) =>
+            item === 'Account' ? onAccount() : setMode(item)
+          }
+        />
+      </View>
+      <Modal
+        visible={panelOpen}
+        animationType="none"
+        onRequestClose={() => {
+          setFilters(null);
+          setChoosingArea(false);
+        }}
+        onShow={() => {
+          if (panelTitleRef.current)
+            AccessibilityInfo.sendAccessibilityEvent(
+              panelTitleRef.current,
+              'focus',
+            );
+        }}
+      >
+        <SafeAreaView style={styles.page}>
+          <KeyboardAvoidingView
+            style={styles.page}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.content}
+            >
+              <View ref={panelTitleRef} accessible accessibilityRole="header">
+                <AppText variant="title">
+                  {filters ? 'Search requirements' : 'Choose search area'}
+                </AppText>
+              </View>
+              {filters ? (
+                <FiltersPanel
+                  value={filters}
+                  onChange={setFilters}
+                  onApply={() => {
+                    setSearch({ ...search, filters });
+                    setFilters(null);
+                  }}
+                  onCancel={() => setFilters(null)}
+                />
+              ) : (
+                <>
+                  <TextInput
+                    accessibilityLabel="Search catalog names and addresses"
+                    placeholder="Search names or addresses"
+                    value={search.query}
+                    onChangeText={(query) => setSearch({ ...search, query })}
+                    style={styles.input}
+                  />
+                  <AreaPicker
+                    key={normalizedLocationQuery(search.query)}
+                    query={normalizedLocationQuery(search.query)}
+                    onSelect={(restroom) => {
+                      chooseCenter(
+                        restroom.entrance,
+                        `Area around ${restroom.name}`,
+                      );
+                      setSearch((previous) => ({ ...previous, query: '' }));
+                    }}
+                  />
+                  <Button
+                    label="Back to map"
+                    variant="secondary"
+                    onPress={() => {
+                      setChoosingArea(false);
+                      setSearch({ ...search, query: '' });
+                    }}
+                  />
+                </>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -729,6 +894,23 @@ function accessText(restroom: Restroom) {
 }
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.page },
+  brandHeader: { paddingHorizontal: 16, paddingVertical: 8 },
+  mapStage: { flex: 1, minHeight: 0 },
+  mapFallback: { flex: 1, justifyContent: 'flex-end', padding: 20, gap: 12 },
+  floatingSearch: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    maxHeight: '48%',
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+  },
+  floatingContent: { padding: 12 },
+  chipRail: { gap: 8, alignItems: 'center', paddingVertical: 4 },
+  selectedSummary: { maxHeight: '32%', flexGrow: 0 },
+  summaryContent: { padding: 12, gap: 8 },
+  dockFooter: { paddingHorizontal: 12, paddingVertical: 8 },
   content: { padding: 20, gap: 16, paddingBottom: 40 },
   footer: { paddingHorizontal: 20, paddingVertical: 12 },
   stack: { gap: 12 },

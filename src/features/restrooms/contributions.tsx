@@ -1,6 +1,9 @@
 import React, { useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   BackHandler,
+  Modal,
+  Pressable,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,18 +14,28 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button } from '../../components/ui';
-import { colors } from '../../theme/tokens';
+import { colors, fonts } from '../../theme/tokens';
 import { useRestroomExperience, useRestroomScope } from './context';
 import type { Review, ReviewInput } from './types';
 
-function Frame({ children }: { children: React.ReactNode }) {
+function Frame({
+  children,
+  header,
+  scrollRef,
+}: {
+  children: React.ReactNode;
+  header?: React.ReactNode;
+  scrollRef?: React.Ref<React.ComponentRef<typeof ScrollView>>;
+}) {
   return (
     <SafeAreaView style={styles.page}>
       <KeyboardAvoidingView
         style={styles.page}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {header}
         <ScrollView
+          ref={scrollRef}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.content}
         >
@@ -44,8 +57,19 @@ function Field({
   );
 }
 function ErrorMessage({ message }: { message: string }) {
+  const ref = useRef<React.ComponentRef<typeof View>>(null);
   return message ? (
-    <AppText accessibilityRole="alert">{message}</AppText>
+    <View
+      ref={ref}
+      accessible
+      accessibilityRole="alert"
+      onLayout={() => {
+        if (ref.current)
+          AccessibilityInfo.sendAccessibilityEvent(ref.current, 'focus');
+      }}
+    >
+      <AppText>{message}</AppText>
+    </View>
   ) : null;
 }
 function message(error: unknown) {
@@ -72,15 +96,26 @@ function Ratings({
       </AppText>
       <View style={styles.stars}>
         {[1, 2, 3, 4, 5].map((score) => (
-          <Button
+          <Pressable
             key={score}
-            label={`${label} ${score} stars`}
-            selected={score === value}
-            variant={score === value ? 'primary' : 'secondary'}
+            accessibilityRole="button"
+            accessibilityLabel={`${label} ${score} stars`}
+            accessibilityState={{ selected: score === value }}
             onPress={() => onChange(score)}
-          />
+            style={({ pressed }) => [
+              styles.star,
+              (pressed || score === value) && styles.selectedStar,
+            ]}
+          >
+            <AppText style={styles.starText}>
+              {score <= (value ?? 0) ? '★' : '☆'}
+            </AppText>
+          </Pressable>
         ))}
       </View>
+      <AppText variant="caption">
+        {value ? `${value} of 5` : 'Not rated'}
+      </AppText>
       {optional && (
         <Button
           variant="secondary"
@@ -169,14 +204,28 @@ function ReviewForm({
         }
       : { desperateTimes: false },
   );
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const overallRef = useRef<React.ComponentRef<typeof View>>(null);
+  const discardRef = useRef<React.ComponentRef<typeof View>>(null);
+  const summaryRef = useRef<React.ComponentRef<typeof View>>(null);
+  const [overallError, setOverallError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  React.useEffect(() => {
+    if (confirm) return;
+    const frame = requestAnimationFrame(() => {
+      if (summaryRef.current)
+        AccessibilityInfo.sendAccessibilityEvent(summaryRef.current, 'focus');
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [confirm]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const change = (patch: Partial<ReviewInput>) => {
     setInput((value) => ({ ...value, ...patch }));
     setDirty(true);
+    if (patch.overall) setOverallError('');
   };
   const back = React.useCallback(() => {
     if (dirty) setConfirm(true);
@@ -192,7 +241,12 @@ function ReviewForm({
   async function save() {
     if (lock.current) return;
     if (!input.overall) {
-      setError('Choose an overall experience from 1 to 5.');
+      setOverallError('Choose an overall experience from 1 to 5.');
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      requestAnimationFrame(() => {
+        if (overallRef.current)
+          AccessibilityInfo.sendAccessibilityEvent(overallRef.current, 'focus');
+      });
       return;
     }
     lock.current = true;
@@ -208,40 +262,73 @@ function ReviewForm({
       props.onSuccess();
     } catch (error) {
       setError(message(error));
+      requestAnimationFrame(() =>
+        scrollRef.current?.scrollToEnd({ animated: false }),
+      );
     } finally {
       lock.current = false;
       setBusy(false);
     }
   }
   return (
-    <Frame>
-      <Button
-        label="Back to restroom"
-        variant="secondary"
-        disabled={busy}
-        onPress={back}
-      />
-      <AppText variant="title">
-        {existing ? 'Edit review' : 'Rate this restroom'}
-      </AppText>
-      <AppText variant="heading">{name}</AppText>
+    <Frame
+      scrollRef={scrollRef}
+      header={
+        <ScrollView
+          style={styles.fixedSummary}
+          contentContainerStyle={styles.summaryContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Button
+            label="Back to restroom"
+            variant="secondary"
+            disabled={busy}
+            onPress={back}
+          />
+          <View ref={summaryRef} accessible accessibilityRole="header">
+            <AppText variant="title">
+              {existing ? 'Edit review' : 'Rate this restroom'}
+            </AppText>
+            <AppText variant="heading">{name}</AppText>
+          </View>
+        </ScrollView>
+      }
+    >
       {(
         ['overall', 'cleanliness', 'supplies', 'facilityCondition'] as const
       ).map((key) => (
-        <Ratings
-          key={key}
-          label={
-            {
-              overall: 'Overall experience',
-              cleanliness: 'Cleanliness',
-              supplies: 'Supplies',
-              facilityCondition: 'Facility condition',
-            }[key]
-          }
-          value={input[key]}
-          optional={key !== 'overall'}
-          onChange={(value) => change({ [key]: value })}
-        />
+        <View key={key}>
+          {key === 'overall' && (
+            <View
+              ref={overallRef}
+              accessible
+              accessibilityRole={overallError ? 'alert' : 'header'}
+              accessibilityLabel={overallError || 'Overall experience'}
+              onLayout={() => {
+                if (overallError && overallRef.current)
+                  AccessibilityInfo.sendAccessibilityEvent(
+                    overallRef.current,
+                    'focus',
+                  );
+              }}
+            >
+              {overallError ? <AppText>{overallError}</AppText> : null}
+            </View>
+          )}
+          <Ratings
+            label={
+              {
+                overall: 'Overall experience',
+                cleanliness: 'Cleanliness',
+                supplies: 'Supplies',
+                facilityCondition: 'Facility condition',
+              }[key]
+            }
+            value={input[key]}
+            optional={key !== 'overall'}
+            onChange={(value) => change({ [key]: value })}
+          />
+        </View>
       ))}
       <Field
         label="Written notes"
@@ -266,17 +353,35 @@ function ReviewForm({
         disabled={busy}
         onPress={() => void save()}
       />
-      {confirm && (
-        <View accessibilityViewIsModal style={styles.group}>
-          <AppText variant="heading">Discard unsaved changes?</AppText>
-          <Button label="Keep editing" onPress={() => setConfirm(false)} />
-          <Button
-            label="Discard changes"
-            variant="secondary"
-            onPress={props.onBack}
-          />
-        </View>
-      )}
+      <Modal
+        visible={confirm}
+        transparent
+        animationType="none"
+        onRequestClose={() => setConfirm(false)}
+        onShow={() => {
+          if (discardRef.current)
+            AccessibilityInfo.sendAccessibilityEvent(
+              discardRef.current,
+              'focus',
+            );
+        }}
+      >
+        <SafeAreaView style={styles.backdrop}>
+          <ScrollView contentContainerStyle={styles.dialogContainer}>
+            <View accessibilityViewIsModal style={styles.dialog}>
+              <View ref={discardRef} accessible accessibilityRole="header">
+                <AppText variant="heading">Discard unsaved changes?</AppText>
+              </View>
+              <Button label="Keep editing" onPress={() => setConfirm(false)} />
+              <Button
+                label="Discard changes"
+                variant="secondary"
+                onPress={props.onBack}
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </Frame>
   );
 }
@@ -284,6 +389,9 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.page },
   content: { padding: 20, gap: 18 },
   input: {
+    fontFamily: fonts.body,
+    fontSize: 16,
+    lineHeight: 24,
     minHeight: 48,
     padding: 12,
     borderWidth: 1,
@@ -292,7 +400,32 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   group: { gap: 10 },
-  stars: { gap: 8 },
+  stars: { gap: 8, flexDirection: 'row', flexWrap: 'wrap' },
+  star: {
+    minWidth: 48,
+    minHeight: 48,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: colors.subtle,
+  },
+  selectedStar: { backgroundColor: colors.primaryContainer },
+  starText: { fontSize: 28, lineHeight: 36, color: colors.primary },
+  fixedSummary: {
+    maxHeight: '35%',
+    flexGrow: 0,
+    backgroundColor: colors.surface,
+  },
+  summaryContent: { padding: 16, gap: 8 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(19,33,30,0.45)' },
+  dialogContainer: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  dialog: {
+    padding: 24,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    gap: 16,
+  },
 });
 
 let submissionSequence = 0;
