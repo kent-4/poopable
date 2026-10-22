@@ -169,6 +169,24 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "restrooms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "state",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "entrance.latitude",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "entrance.longitude",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

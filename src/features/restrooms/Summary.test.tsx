@@ -19,7 +19,10 @@ const summary = {
 
 test('detail displays complete service scores while review history is paginated independently', async () => {
   const services = createDemoServices(() => now);
-  const snapshot = await services.repository.load();
+  const snapshot = await services.repository.load(now, {
+    center: demoCenter,
+    radiusKm: 5,
+  });
   services.repository.load = async () =>
     Object.assign(
       { ...snapshot, reviews: [] },
@@ -54,7 +57,10 @@ test('detail displays complete service scores while review history is paginated 
 
 test('an expiring service assessment becomes uncertain while offline and recomputes on retry', async () => {
   const services = createDemoServices(() => now);
-  const snapshot = await services.repository.load();
+  const snapshot = await services.repository.load(now, {
+    center: demoCenter,
+    radiusKm: 5,
+  });
   let currentNow = now;
   let online = true;
   let tick = () => {};
@@ -145,7 +151,10 @@ test('sign-in waits for the visitor’s existing review before opening the edito
   services.repository.load = async () => {
     const visitor = services.auth.current();
     if (visitor) await hold;
-    const snapshot = await load();
+    const snapshot = await load(now, {
+      center: demoCenter,
+      radiusKm: 5,
+    });
     return {
       ...snapshot,
       reviews: snapshot.reviews.filter(

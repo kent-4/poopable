@@ -17,8 +17,10 @@ import {
   SegmentedDock,
 } from '../../components/ui';
 import { colors, fonts } from '../../theme/tokens';
-import { useRestroomExperience } from './context';
+import { useRestroomExperience, useRestroomScope } from './context';
 import { HistorySection } from './HistorySection';
+import { AreaPicker } from './AreaPicker';
+import { normalizedLocationQuery } from './search-area';
 import {
   assessment,
   discover,
@@ -271,13 +273,8 @@ export function DiscoveryScreen({
   const [filters, setFilters] = useState<Filters | null>(null);
   const [mode, setMode] = useState(MapComponent ? 'Map' : 'List');
   const [selectedId, setSelectedId] = useState<string>();
-  const [manual, setManual] = useState(!search.center);
-  const [latitude, setLatitude] = useState(
-    search.center ? String(search.center.latitude) : '',
-  );
-  const [longitude, setLongitude] = useState(
-    search.center ? String(search.center.longitude) : '',
-  );
+  const [choosingArea, setChoosingArea] = useState(!search.center);
+  const [areaLabel, setAreaLabel] = useState('Search area selected');
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const locationRequest = useRef(0);
@@ -287,30 +284,15 @@ export function DiscoveryScreen({
     },
     [],
   );
-  function chooseCenter(center: Coordinates) {
+  function chooseCenter(center: Coordinates, label = 'Map area selected') {
     locationRequest.current++;
     setLocating(false);
     setSearch((previous) => ({ ...previous, center }));
-    setLatitude(String(center.latitude));
-    setLongitude(String(center.longitude));
+    setAreaLabel(label);
     setLocationError(null);
-    setManual(false);
+    setChoosingArea(false);
   }
   const rows = discover(snapshot, search, now);
-  const relocationMatches = search.query.trim()
-    ? snapshot.restrooms
-        .filter(
-          (restroom) =>
-            restroom.state === 'published' &&
-            `${restroom.name} ${restroom.building} ${restroom.address}`
-              .toLocaleLowerCase()
-              .includes(search.query.trim().toLocaleLowerCase()) &&
-            (!search.center ||
-              distanceKm(search.center, restroom.entrance) > search.radiusKm),
-        )
-        .sort((a, b) => a.id.localeCompare(b.id))
-        .slice(0, 5)
-    : [];
   const selected =
     rows.find((row) => row.restroom.id === selectedId) ?? rows[0];
   async function locate() {
@@ -320,36 +302,16 @@ export function DiscoveryScreen({
     try {
       const center = await dependencies.location.locate();
       if (request !== locationRequest.current) return;
-      chooseCenter(center);
+      chooseCenter(center, 'Current location');
     } catch (error) {
       if (request !== locationRequest.current) return;
       setLocationError(
-        `${error instanceof Error ? error.message : 'Location is unavailable'}. Choose a location manually or try again.`,
+        `${error instanceof Error ? error.message : 'Location is unavailable'}. Choose a search area below or try again.`,
       );
-      setManual(true);
+      setChoosingArea(true);
     } finally {
       if (request === locationRequest.current) setLocating(false);
     }
-  }
-  function chooseLocation() {
-    const lat = Number(latitude);
-    const lng = Number(longitude);
-    if (
-      !latitude.trim() ||
-      !longitude.trim() ||
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lng) ||
-      lat < -90 ||
-      lat > 90 ||
-      lng < -180 ||
-      lng > 180
-    ) {
-      setLocationError(
-        'Enter a latitude from -90 to 90 and longitude from -180 to 180.',
-      );
-      return;
-    }
-    chooseCenter({ latitude: lat, longitude: lng });
   }
   const header = (
     <View style={styles.stack}>
@@ -360,6 +322,34 @@ export function DiscoveryScreen({
         </View>
         <Button label="Account" variant="secondary" onPress={onAccount} />
       </View>
+      <SegmentedDock
+        items={['Map', 'List']}
+        selected={mode}
+        onSelect={setMode}
+      />
+      {mode === 'Map' &&
+        (MapComponent ? (
+          <MapComponent
+            center={search.center}
+            radiusKm={search.radiusKm}
+            restrooms={rows.map((row) => row.restroom)}
+            selectedId={selected?.restroom.id}
+            onSelect={setSelectedId}
+            onSearchArea={chooseCenter}
+            onShowList={() => setMode('List')}
+            markerLabels={Object.fromEntries(
+              rows.map((row) => [
+                row.restroom.id,
+                `${row.restroom.name}. ${openingText(row.assessment.opening)}. ${usabilityText(row.assessment.recent)}`,
+              ]),
+            )}
+          />
+        ) : (
+          <Card>
+            <AppText>Map unavailable. The complete list is available.</AppText>
+            <Button label="Show list" onPress={() => setMode('List')} />
+          </Card>
+        ))}
       {dependencies.mode === 'demo' && (
         <AppText accessibilityRole="alert">
           Fictional demo catalog · not real facilities or visitor advice
@@ -384,20 +374,14 @@ export function DiscoveryScreen({
         style={styles.input}
         returnKeyType="search"
       />
-      {relocationMatches.length > 0 && (
-        <Card>
-          <AppText variant="heading">
-            Matching catalog locations outside this area
-          </AppText>
-          {relocationMatches.map((restroom) => (
-            <Button
-              key={restroom.id}
-              label={`Search around ${restroom.name}`}
-              variant="secondary"
-              onPress={() => chooseCenter(restroom.entrance)}
-            />
-          ))}
-        </Card>
+      {(choosingArea || search.query.trim()) && (
+        <AreaPicker
+          key={normalizedLocationQuery(search.query)}
+          query={normalizedLocationQuery(search.query)}
+          onSelect={(restroom) =>
+            chooseCenter(restroom.entrance, `Area around ${restroom.name}`)
+          }
+        />
       )}
       <View style={styles.row}>
         <Button
@@ -407,39 +391,15 @@ export function DiscoveryScreen({
           onPress={() => void locate()}
         />
         <Button
-          label="Choose location manually"
+          label="Choose search area"
           variant="secondary"
-          onPress={() => setManual(!manual)}
+          onPress={() => setChoosingArea(!choosingArea)}
         />
       </View>
       {locationError && (
         <AppText accessibilityRole="alert">{locationError}</AppText>
       )}
-      {manual && (
-        <Card>
-          <AppText variant="heading">Manual search location</AppText>
-          <TextInput
-            accessibilityLabel="Search latitude"
-            placeholder="Latitude"
-            keyboardType="numbers-and-punctuation"
-            value={latitude}
-            onChangeText={setLatitude}
-            style={styles.input}
-          />
-          <TextInput
-            accessibilityLabel="Search longitude"
-            placeholder="Longitude"
-            keyboardType="numbers-and-punctuation"
-            value={longitude}
-            onChangeText={setLongitude}
-            style={styles.input}
-          />
-          <Button label="Search this location" onPress={chooseLocation} />
-        </Card>
-      )}
-      {search.center && (
-        <AppText>{`Search center: ${search.center.latitude.toFixed(4)}, ${search.center.longitude.toFixed(4)}`}</AppText>
-      )}
+      {search.center && <AppText>{areaLabel}</AppText>}
       <View style={styles.row}>
         {([1, 2, 5] as const).map((radiusKm) => (
           <Button
@@ -467,11 +427,6 @@ export function DiscoveryScreen({
           onCancel={() => setFilters(null)}
         />
       )}
-      <SegmentedDock
-        items={['Map', 'List']}
-        selected={mode}
-        onSelect={setMode}
-      />
       {refreshing && (
         <AppText accessibilityLiveRegion="polite">
           {lastRefreshed ? 'Refreshing restrooms…' : 'Loading restrooms…'}
@@ -500,29 +455,6 @@ export function DiscoveryScreen({
           available with their conditions.
         </AppText>
       )}
-      {mode === 'Map' &&
-        (MapComponent ? (
-          <MapComponent
-            center={search.center}
-            radiusKm={search.radiusKm}
-            restrooms={rows.map((row) => row.restroom)}
-            selectedId={selected?.restroom.id}
-            onSelect={setSelectedId}
-            onSearchArea={chooseCenter}
-            onShowList={() => setMode('List')}
-            markerLabels={Object.fromEntries(
-              rows.map((row) => [
-                row.restroom.id,
-                `${row.restroom.name}. ${openingText(row.assessment.opening)}. ${usabilityText(row.assessment.recent)}`,
-              ]),
-            )}
-          />
-        ) : (
-          <Card>
-            <AppText>Map unavailable. The complete list is available.</AppText>
-            <Button label="Show list" onPress={() => setMode('List')} />
-          </Card>
-        ))}
       {mode === 'Map' && selected && (
         <ResultCard row={selected} onOpen={onOpen} />
       )}
@@ -585,6 +517,7 @@ export function DetailScreen({
     contributionId: string;
   }>;
 }) {
+  useRestroomScope(restroomId);
   const {
     snapshot,
     now,

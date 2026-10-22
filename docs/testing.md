@@ -17,3 +17,5 @@ On 2026-10-21, failure detection was verified by temporarily expecting the nonex
 These JavaScript interaction checks do not establish that native maps, permissions, fonts, or signing work on installed iOS and Android builds.
 
 Tooling references: [Expo SDK 58](https://docs.expo.dev/versions/v58.0.0/), [Expo Jest setup](https://docs.expo.dev/develop/unit-testing/), and [Jest getting started](https://jestjs.io/docs/getting-started).
+
+Radius discovery coverage lives in `DiscoveryScope.test.tsx`: service-backed radius expansion, delayed response rejection, direct permanent-closure details, named catalog relocation without coordinates, and bounded metadata continuation with stale-data retry. Geographic Firestore checks are added in `scripts/service/discovery.test.mjs` but remain unrun under the earlier emulator permission decision. See [the scope and query contract](development/radius-discovery.md). The native map viewport regression has separate [installed-simulator evidence](development/native-smoke.md).

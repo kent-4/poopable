@@ -24,7 +24,7 @@ Local verification on 2026-10-21: lint and typecheck pass; the complete rendered
 
 ## Remaining C2 work
 
-The catalog snapshot now uses [service-side aggregates](service-aggregation.md) instead of downloading public contribution collections. Radius-bounded catalog queries remain necessary before production readiness. Never derive an overall score from the currently displayed history page.
+The catalog snapshot now uses [service-side aggregates](service-aggregation.md) instead of downloading public contribution collections. [Radius-bounded catalog queries](radius-discovery.md) are implemented; geographic service validation remains pending. Never derive an overall score from the currently displayed history page.
 
 Primary references: [Firestore query cursors](https://firebase.google.com/docs/firestore/query-data/query-cursors), [query indexes](https://firebase.google.com/docs/firestore/query-data/index-overview), [stored timestamp precision](https://firebase.google.com/docs/firestore/manage-data/data-types).
 
@@ -36,4 +36,4 @@ No actionable findings against repository guidance, glossary, testing convention
 
 One test-fixture finding was fixed: Firestore stores timestamps with microsecond precision. The emulator fixture now uses distinct microseconds within one millisecond, with timestamp order different from identity order. The cursor still carries the full stored seconds/nanoseconds values. Facility scope, suppression filters, retry, refresh reset, navigation races, and aggregate/history separation otherwise match this slice's contract.
 
-Standards: 0 findings. Spec: 1 finding, fixed; no remaining scoped findings. Radius-bounded service discovery remains separate C2 work above.
+Standards: 0 findings. Spec: 1 finding, fixed; no remaining scoped findings. Geographic service validation remains pending above.

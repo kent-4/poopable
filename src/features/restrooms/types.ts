@@ -89,8 +89,16 @@ export type HistoryCursor = {
   id: string;
 };
 export type HistoryPage<T> = { items: T[]; next: HistoryCursor | null };
+export type CatalogScope = {
+  center: Coordinates | null;
+  radiusKm: 1 | 2 | 5;
+  detailId?: string;
+};
+export type LocationCursor = { query: string; id: string };
+export type LocationPage = { items: Restroom[]; next: LocationCursor | null };
 export interface RestroomRepository {
-  load(now?: number): Promise<CatalogSnapshot>;
+  load(now?: number, scope?: CatalogScope): Promise<CatalogSnapshot>;
+  findLocations(query: string, cursor?: LocationCursor): Promise<LocationPage>;
   loadReviews(
     restroomId: string,
     cursor?: HistoryCursor,

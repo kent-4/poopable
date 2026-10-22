@@ -1,5 +1,6 @@
 import { createDemoCatalog, demoCenter } from './fixtures';
 import { memoryHistoryPage } from './history';
+import { inSearchArea, memoryLocations, validateScope } from './search-area';
 import {
   nativeClock,
   nativeDirections,
@@ -20,6 +21,7 @@ function unavailable(message: string): Services {
   return {
     repository: {
       load: fail,
+      findLocations: fail,
       loadReviews: fail,
       loadReports: fail,
       saveReview: fail,
@@ -93,7 +95,24 @@ export function createDemoServices(now: () => number = Date.now): Services {
     signOut: async () => publish(null),
   };
   const repository: RestroomRepository = {
-    load: async () => JSON.parse(JSON.stringify(catalog)),
+    load: async (_now, scope = { center: null, radiusKm: 1 }) => {
+      validateScope(scope);
+      const restrooms = catalog.restrooms.filter((restroom) =>
+        scope.detailId
+          ? restroom.id === scope.detailId && restroom.state !== 'pending'
+          : inSearchArea(restroom, scope),
+      );
+      const ids = new Set(restrooms.map((restroom) => restroom.id));
+      return JSON.parse(
+        JSON.stringify({
+          restrooms,
+          reviews: catalog.reviews.filter((item) => ids.has(item.restroomId)),
+          reports: catalog.reports.filter((item) => ids.has(item.restroomId)),
+        }),
+      );
+    },
+    findLocations: async (query, cursor) =>
+      memoryLocations(catalog.restrooms, query, cursor),
     loadReviews: async (restroomId, cursor) =>
       memoryHistoryPage(
         catalog.reviews,

@@ -8,59 +8,10 @@ import {
   terminate,
 } from 'firebase/firestore';
 import { readEmulatorConfig } from './config.mjs';
+import { writeFixtures as write } from './fixtures.mjs';
 import { createDemoCatalog } from '../../src/features/restrooms/fixtures.ts';
 
 const { projectId, host } = readEmulatorConfig();
-const root = `projects/${projectId}/databases/(default)/documents`;
-const url = `http://${host}/v1/${root}:commit`;
-function fields(value) {
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([, item]) => item !== undefined)
-      .map(([key, item]) => [
-        key,
-        item instanceof Date
-          ? { timestampValue: item.toISOString() }
-          : item === null
-            ? { nullValue: null }
-            : typeof item === 'string'
-              ? { stringValue: item }
-              : typeof item === 'boolean'
-                ? { booleanValue: item }
-                : typeof item === 'number'
-                  ? Number.isInteger(item)
-                    ? { integerValue: String(item) }
-                    : { doubleValue: item }
-                  : Array.isArray(item)
-                    ? {
-                        arrayValue: {
-                          values: item.map((entry) => ({
-                            mapValue: { fields: fields(entry) },
-                          })),
-                        },
-                      }
-                    : { mapValue: { fields: fields(item) } },
-      ]),
-  );
-}
-async function write(records) {
-  for (let offset = 0; offset < records.length; offset += 500) {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer owner',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        writes: records.slice(offset, offset + 500).map(([path, value]) => ({
-          update: { name: `${root}/${path}`, fields: fields(value) },
-        })),
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-    assert.equal(response.status, 200, await response.text());
-  }
-}
 
 test(
   'service summaries cover more than 2000 contributions without returning their bodies',
@@ -138,7 +89,11 @@ test(
       const { createFirebaseServices } =
         await import('../../src/features/restrooms/firebase.ts');
       const { repository } = createFirebaseServices(auth, db);
-      const snapshot = await repository.load(now);
+      const snapshot = await repository.load(now, {
+        center: null,
+        radiusKm: 1,
+        detailId: restroomId,
+      });
       const summary = snapshot.reviewSummaries[restroomId];
       assert.deepEqual(summary.overall, { value: 4.5, count: 2502 });
       assert.deepEqual(summary.cleanliness, { value: 3, count: 2 });
@@ -160,14 +115,22 @@ test(
           { ...review(0), desperateTimes: false },
         ],
       ]);
-      const edited = await repository.load(now);
+      const edited = await repository.load(now, {
+        center: null,
+        radiusKm: 1,
+        detailId: restroomId,
+      });
       assert.equal(edited.reviewSummaries[restroomId].desperate.flagged, 1);
       assert.equal(edited.reviewSummaries[restroomId].desperate.total, 3);
       assert.equal(edited.reviewSummaries[restroomId].overall.count, 2502);
       await write([
         [`reviews/${restroomId}:fixture-1`, { ...review(1), suppressed: true }],
       ]);
-      const moderated = await repository.load(now);
+      const moderated = await repository.load(now, {
+        center: null,
+        radiusKm: 1,
+        detailId: restroomId,
+      });
       assert.equal(moderated.reviewSummaries[restroomId].overall.count, 2501);
       assert.deepEqual(moderated.reviewSummaries[restroomId].cleanliness, {
         value: 2,

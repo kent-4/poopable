@@ -61,7 +61,11 @@ test(
         overall: 2,
         notes: 'Edited',
       });
-      let snapshot = await repository.load();
+      let snapshot = await repository.load(Date.now(), {
+        center: null,
+        radiusKm: 1,
+        detailId: 'fictional-emulator-restroom',
+      });
       const reviews = snapshot.reviews.filter(
         (item) => item.authorId === account.user.uid,
       );
@@ -78,7 +82,11 @@ test(
         'usable',
         'stable-retry',
       );
-      snapshot = await repository.load();
+      snapshot = await repository.load(Date.now(), {
+        center: null,
+        radiusKm: 1,
+        detailId: 'fictional-emulator-restroom',
+      });
       assert.equal(
         snapshot.reports.filter((item) => item.authorId === account.user.uid)
           .length,
@@ -158,7 +166,11 @@ test(
         ),
       );
       await owner.suppress('review', reviews[0].id);
-      snapshot = await repository.load();
+      snapshot = await repository.load(Date.now(), {
+        center: null,
+        radiusKm: 1,
+        detailId: 'fictional-emulator-restroom',
+      });
       assert.equal(
         (
           await repository.loadReviews('fictional-emulator-restroom')
@@ -179,9 +191,13 @@ test(
       };
       await owner.importRestroom(imported);
       assert.equal(
-        (await repository.load()).restrooms.find(
-          (item) => item.id === imported.id,
-        ).name,
+        (
+          await repository.load(Date.now(), {
+            center: null,
+            radiusKm: 1,
+            detailId: imported.id,
+          })
+        ).restrooms.find((item) => item.id === imported.id).name,
         imported.name,
       );
     } finally {

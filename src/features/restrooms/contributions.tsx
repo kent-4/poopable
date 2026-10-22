@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText, Button } from '../../components/ui';
 import { colors } from '../../theme/tokens';
-import { useRestroomExperience } from './context';
+import { useRestroomExperience, useRestroomScope } from './context';
 import type { Review, ReviewInput } from './types';
 
 function Frame({ children }: { children: React.ReactNode }) {
@@ -98,6 +98,7 @@ type ContributionProps = {
   onAuthenticate(): void;
 };
 export function ReviewScreen(props: ContributionProps) {
+  useRestroomScope(props.restroomId);
   const { visitor, snapshot, refreshing, error, refresh, snapshotVisitorId } =
     useRestroomExperience();
   const restroom = snapshot.restrooms.find(
@@ -296,6 +297,7 @@ const styles = StyleSheet.create({
 
 let submissionSequence = 0;
 export function ReportScreen(props: ContributionProps) {
+  useRestroomScope(props.restroomId);
   const { visitor, dependencies, snapshot, refresh } = useRestroomExperience();
   const [attempted, setAttempted] = useState(false);
   const [condition, setCondition] = useState<

@@ -59,7 +59,10 @@ test('review form retains input after retryable failure and saves one editable v
   failing = false;
   await fireEvent.press(screen.getByRole('button', { name: 'Submit review' }));
   expect(done).toBe(true);
-  const catalog = await deps.repository.load();
+  const catalog = await deps.repository.load(now, {
+    center: demoCenter,
+    radiusKm: 5,
+  });
   expect(
     catalog.reviews.find((r) => r.authorName === 'Visitor')?.desperateTimes,
   ).toBe(false);
@@ -102,9 +105,12 @@ test('usability requires an explicit condition and retries the same submission w
     screen.getByRole('button', { name: 'Submit observation' }),
   );
   expect(
-    (await deps.repository.load()).reports.filter(
-      (r) => r.authorName === 'Visitor',
-    ),
+    (
+      await deps.repository.load(now, {
+        center: demoCenter,
+        radiusKm: 5,
+      })
+    ).reports.filter((r) => r.authorName === 'Visitor'),
   ).toHaveLength(1);
 });
 
@@ -134,9 +140,12 @@ test('registration returns to intended action without automatically submitting a
   await fireEvent.press(screen.getByRole('button', { name: 'Register' }));
   expect(returned).toBe(true);
   expect(
-    (await deps.repository.load()).reviews.filter(
-      (r) => r.authorName === 'New visitor',
-    ),
+    (
+      await deps.repository.load(now, {
+        center: demoCenter,
+        radiusKm: 5,
+      })
+    ).reviews.filter((r) => r.authorName === 'New visitor'),
   ).toHaveLength(0);
 });
 
@@ -165,7 +174,12 @@ test('a private flag requires a reason and never removes the public contribution
   await fireEvent.press(screen.getByRole('button', { name: 'Submit flag' }));
   expect(done).toBe(true);
   expect(
-    (await deps.repository.load()).reviews.some((r) => r.id === 'ground-b'),
+    (
+      await deps.repository.load(now, {
+        center: demoCenter,
+        radiusKm: 5,
+      })
+    ).reviews.some((r) => r.id === 'ground-b'),
   ).toBe(true);
 });
 
@@ -204,9 +218,12 @@ test('editing replaces the existing vote and back navigation protects unsaved no
     screen.getByRole('button', { name: 'Overall experience 4 stars' }),
   );
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
-  const reviews = (await deps.repository.load()).reviews.filter(
-    (r) => r.authorName === 'Visitor',
-  );
+  const reviews = (
+    await deps.repository.load(now, {
+      center: demoCenter,
+      radiusKm: 5,
+    })
+  ).reviews.filter((r) => r.authorName === 'Visitor');
   expect(reviews).toHaveLength(1);
   expect(reviews[0]).toMatchObject({
     overall: 4,

@@ -10,7 +10,10 @@ const now = Date.parse('2026-10-21T04:00:00Z');
 
 test('detail loads facility review pages and retries without losing earlier reviews or changing the overall score', async () => {
   const services = createDemoServices(() => now);
-  const snapshot = await services.repository.load();
+  const snapshot = await services.repository.load(now, {
+    center: demoCenter,
+    radiusKm: 5,
+  });
   const review = snapshot.reviews.find(
     (item) => item.restroomId === 'demo-ground',
   )!;
@@ -129,7 +132,10 @@ test('equal-time reviews paginate without gaps and a refresh restarts history af
 
 test('a late history response cannot append another restroom’s reviews after navigation', async () => {
   const services = createDemoServices(() => now);
-  const snapshot = await services.repository.load();
+  const snapshot = await services.repository.load(now, {
+    center: demoCenter,
+    radiusKm: 5,
+  });
   const review = snapshot.reviews.find(
     (item) => item.restroomId === 'demo-ground',
   )!;

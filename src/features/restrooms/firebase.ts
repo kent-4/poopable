@@ -9,8 +9,6 @@ import {
 } from 'firebase/auth';
 import {
   type Firestore,
-  type QueryConstraint,
-  type DocumentData,
   collection,
   doc,
   documentId,
@@ -26,10 +24,10 @@ import {
 } from 'firebase/firestore';
 import { historyPageSize, validateHistoryCursor } from './history.ts';
 import { loadRestroomContributions } from './firebaseSummary.ts';
+import { findCatalogLocations, loadScopedCatalog } from './firebaseCatalog.ts';
 import type {
   Authentication,
   RestroomRepository,
-  Restroom,
   Review,
   UsabilityReport,
   Visitor,
@@ -57,33 +55,6 @@ export function createFirebaseServices(
     if (!user.displayName?.trim())
       throw new Error('Set a public display name before contributing.');
     return { authorId: user.uid, authorName: user.displayName };
-  }
-  async function readAll(
-    name: string,
-    filters: QueryConstraint[],
-    maximum: number,
-  ) {
-    const result: DocumentData[] = [];
-    let cursor: string | undefined;
-    for (;;) {
-      const page = await getDocsFromServer(
-        query(
-          collection(db, name),
-          ...filters,
-          orderBy(documentId()),
-          ...(cursor ? [startAfter(cursor)] : []),
-          limit(100),
-        ),
-      );
-      for (const item of page.docs)
-        result.push({ ...item.data(), id: item.id });
-      if (result.length > maximum)
-        throw new Error(
-          'This catalog exceeds the supported development size. Ask the owner to configure a larger catalog service.',
-        );
-      if (page.size < 100) return result;
-      cursor = page.docs[page.size - 1].id;
-    }
   }
   const timestamp = (value: unknown) => {
     if (
@@ -175,6 +146,7 @@ export function createFirebaseServices(
       signOut: () => signOut(auth),
     },
     repository: {
+      findLocations: (query, cursor) => findCatalogLocations(db, query, cursor),
       loadReviews: (restroomId, cursor) =>
         readHistory<Review>('reviews', 'updatedAt', restroomId, cursor),
       loadReports: (restroomId, cursor) =>
@@ -184,12 +156,8 @@ export function createFirebaseServices(
           restroomId,
           cursor,
         ),
-      load: async (now = Date.now()) => {
-        const restrooms = await readAll(
-          'restrooms',
-          [where('state', 'in', ['published', 'permanently-closed'])],
-          200,
-        );
+      load: async (now = Date.now(), scope = { center: null, radiusKm: 1 }) => {
+        const restrooms = await loadScopedCatalog(db, scope);
         const authorId = auth.currentUser?.uid;
         const contributions: Awaited<
           ReturnType<typeof loadRestroomContributions>
@@ -207,7 +175,7 @@ export function createFirebaseServices(
           );
         }
         return {
-          restrooms: restrooms as Restroom[],
+          restrooms,
           reviews: contributions.flatMap((value) => value.reviews),
           reports: contributions.flatMap((value) => value.reports),
           reviewSummaries: Object.fromEntries(

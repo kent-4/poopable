@@ -1,6 +1,6 @@
 import { Component, memo, useEffect, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import type { Coordinates, Restroom } from '../types';
 import { colors, fonts } from '../../../theme/tokens';
@@ -99,8 +99,15 @@ function MapSurface(props: RestroomMapProps) {
     onSearchArea,
     onShowList,
   } = props;
-  const [region, setRegion] = useState<Region | undefined>(() =>
-    center ? regionFor(center, radiusKm) : undefined,
+  const [region, setRegion] = useState<Region>(() =>
+    center
+      ? regionFor(center, radiusKm)
+      : {
+          latitude: 0,
+          longitude: 0,
+          latitudeDelta: 120,
+          longitudeDelta: 180,
+        },
   );
   const [pending, setPending] = useState<Coordinates | null>(null);
   const [ready, setReady] = useState(false);
@@ -108,22 +115,15 @@ function MapSurface(props: RestroomMapProps) {
   const providerAvailable =
     props.providerAvailable ??
     (Platform.OS === 'ios' ||
-      Boolean(Constants.expoConfig?.extra?.androidMapsConfigured));
+      (Platform.OS === 'android' &&
+        (Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+          Boolean(Constants.expoConfig?.extra?.androidMapsConfigured))));
   useEffect(() => {
-    if (!providerAvailable || !center || ready) return;
+    if (!providerAvailable || ready) return;
     const timer = setTimeout(() => setFailed(true), 18000);
     return () => clearTimeout(timer);
-  }, [providerAvailable, center, ready]);
+  }, [providerAvailable, ready]);
   if (!providerAvailable || failed) return <Fallback onShowList={onShowList} />;
-  if (!center || !region)
-    return (
-      <View style={styles.fallback}>
-        <Text style={styles.text}>
-          Choose a search area to show nearby restrooms.
-        </Text>
-        <Action label="Choose area in list" onPress={onShowList} />
-      </View>
-    );
   return (
     <MapBoundary onShowList={onShowList}>
       <View style={styles.container}>
@@ -138,9 +138,10 @@ function MapSurface(props: RestroomMapProps) {
             setRegion(next);
             const point = bounded(next);
             setPending(
-              Math.abs(point.latitude - center.latitude) +
-                Math.abs(point.longitude - center.longitude) >
-                0.0001
+              !center ||
+                Math.abs(point.latitude - center.latitude) +
+                  Math.abs(point.longitude - center.longitude) >
+                  0.0001
                 ? point
                 : null,
             );

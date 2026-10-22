@@ -8,7 +8,7 @@ The snapshot contains numerical summaries, at most the current signed-in visitor
 
 ## Time and identity
 
-`repository.load(now)` accepts the feature's evaluation clock in epoch milliseconds. Write observation/update times still come from the service. Each summary carries `asOf` and the next explicit answer's `expiresAt`; these are evaluation metadata, not an observation or guarantee of current usability.
+`repository.load(now, scope)` accepts the feature's evaluation clock in epoch milliseconds. Write observation/update times still come from the service. Each summary carries `asOf` and the next explicit answer's `expiresAt`; these are evaluation metadata, not an observation or guarantee of current usability.
 
 At expiry (or a backwards clock change), the provider requests fresh counts. Until that succeeds, the detail shows **Assessment needs refresh**, hides stale counts/classification, and retains the numerical scores. The default search excludes an assessment awaiting refresh; explicit inclusion can display it as not recommended with the refresh warning. An offline failure retains the existing data with its stale-data label and permits Retry. The provider attempts each expired summary version once automatically, avoiding repeated failed requests. Normal explicit refresh and app resume can retry. Latest usability still expires locally at exactly two hours without needing another report download.
 
@@ -20,7 +20,7 @@ Each facility currently uses four score aggregate queries, two answer counts, tw
 
 `firestore.indexes.json` includes the required score, answer-window, own-review, and history indexes. An authorized owner must deploy indexes/rules before cloud use; no deployment was performed. Aggregate and document queries do not share a transactional read timestamp. Concurrent writes may be reflected across different requests; refresh recomputes the current results. Firestore aggregation still scans server index entries and has service limits/costs; it avoids downloading contribution bodies, not all server work.
 
-The catalog still loads up to 200 public restrooms and computes summaries for that catalog. Radius-bounded service discovery remains C2 work; this slice does not claim large-catalog production readiness.
+The catalog now loads only the selected radius or a single direct-detail facility before computing summaries. See [radius discovery](radius-discovery.md) for query bounds, density limits, and validation status.
 
 ## Validation and review
 
@@ -42,6 +42,6 @@ No actionable findings. Domain terminology, Router boundaries, and the rendered 
 
 ## Spec review
 
-No actionable findings in this aggregation slice. Independent score denominators, strict answer windows, suppression, latest-report ordering, identity-aware editor loading, and stale assessment recovery match the scoped contract. The unexecuted emulator suites and remaining radius query work are explicit limitations.
+No actionable findings in this aggregation slice. Independent score denominators, strict answer windows, suppression, latest-report ordering, identity-aware editor loading, and stale assessment recovery match the scoped contract. The unexecuted emulator suites and pending geographic service validation are explicit limitations.
 
 Standards: 0 findings. Spec: 0 findings.

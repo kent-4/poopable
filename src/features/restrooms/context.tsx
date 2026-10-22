@@ -17,6 +17,7 @@ import type {
 const empty: CatalogSnapshot = { restrooms: [], reviews: [], reports: [] };
 function useExperience(dependencies: ExperienceDependencies) {
   const [snapshot, setSnapshot] = useState<CatalogSnapshot>(empty);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [search, setSearch] = useState<Search>({
     center: dependencies.initialCenter ?? null,
     radiusKm: 1,
@@ -43,7 +44,14 @@ function useExperience(dependencies: ExperienceDependencies) {
     setError(null);
     const authorId = dependencies.auth.current()?.id ?? null;
     try {
-      const data = await dependencies.repository.load(dependencies.clock.now());
+      const data = await dependencies.repository.load(
+        dependencies.clock.now(),
+        {
+          center: search.center,
+          radiusKm: search.radiusKm,
+          ...(detailId ? { detailId } : {}),
+        },
+      );
       if (version === request.current) {
         setSnapshot(data);
         setNow(dependencies.clock.now());
@@ -59,7 +67,7 @@ function useExperience(dependencies: ExperienceDependencies) {
     } finally {
       if (version === request.current) setRefreshing(false);
     }
-  }, [dependencies]);
+  }, [dependencies, search.center, search.radiusKm, detailId]);
   const cancelRequests = useCallback(() => {
     request.current++;
   }, []);
@@ -138,6 +146,7 @@ function useExperience(dependencies: ExperienceDependencies) {
   }, [snapshot, now, dependencies]);
   return {
     snapshot,
+    setDetailId,
     search,
     setSearch,
     visitor,
@@ -170,4 +179,14 @@ export function useRestroomExperience() {
   const value = useContext(Context);
   if (!value) throw new Error('RestroomExperienceProvider is required.');
   return value;
+}
+
+export function useRestroomScope(restroomId: string) {
+  const { setDetailId } = useRestroomExperience();
+  useEffect(() => {
+    if (!restroomId) return;
+    setDetailId(restroomId);
+    return () =>
+      setDetailId((current) => (current === restroomId ? null : current));
+  }, [restroomId, setDetailId]);
 }

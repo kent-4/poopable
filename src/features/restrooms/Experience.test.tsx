@@ -2,6 +2,7 @@ import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { createDemoCatalog, demoCenter } from './fixtures';
 import { memoryHistoryPage } from './history';
+import { memoryLocations } from './search-area';
 import { RestroomExperienceProvider } from './context';
 import { DiscoveryScreen, DetailScreen } from './screens';
 import type { ExperienceDependencies } from './types';
@@ -13,6 +14,8 @@ function dependencies(): ExperienceDependencies {
   return {
     repository: {
       load: async () => createDemoCatalog(now),
+      findLocations: async (query, cursor) =>
+        memoryLocations(createDemoCatalog(now).restrooms, query, cursor),
       loadReviews: async (id, cursor) =>
         memoryHistoryPage(
           createDemoCatalog(now).reviews,
@@ -186,13 +189,12 @@ test('location denial keeps manual discovery and failed directions offer the exa
     screen.getByRole('button', { name: 'Use my location' }),
   );
   expect(await screen.findByText(/Location permission denied/)).toBeTruthy();
-  await fireEvent.changeText(screen.getByLabelText('Search latitude'), '14.55');
-  await fireEvent.changeText(
-    screen.getByLabelText('Search longitude'),
-    '121.02',
-  );
+  expect(screen.queryByLabelText('Search latitude')).toBeNull();
+  expect(screen.queryByLabelText('Search longitude')).toBeNull();
   await fireEvent.press(
-    screen.getByRole('button', { name: 'Search this location' }),
+    await screen.findByRole('button', {
+      name: 'Search around Demo Eucalyptus · Ground restroom',
+    }),
   );
   await fireEvent.press(
     (await screen.findAllByRole('button', { name: 'Directions' }))[0],
@@ -311,15 +313,16 @@ test('a late location response cannot replace a newer manually chosen search are
   await fireEvent.press(
     screen.getByRole('button', { name: 'Use my location' }),
   );
-  await fireEvent.changeText(screen.getByLabelText('Search latitude'), '14.55');
-  await fireEvent.changeText(
-    screen.getByLabelText('Search longitude'),
-    '121.02',
-  );
+  expect(screen.queryByLabelText('Search latitude')).toBeNull();
+  expect(screen.queryByLabelText('Search longitude')).toBeNull();
   await fireEvent.press(
-    screen.getByRole('button', { name: 'Search this location' }),
+    await screen.findByRole('button', {
+      name: 'Search around Demo Eucalyptus · Ground restroom',
+    }),
   );
   await act(async () => finishLocation({ latitude: 15, longitude: 122 }));
-  expect(screen.getByText('Search center: 14.5500, 121.0200')).toBeTruthy();
+  expect(
+    screen.getByText('Area around Demo Eucalyptus · Ground restroom'),
+  ).toBeTruthy();
   expect(screen.getByText('Demo Eucalyptus · Ground restroom')).toBeTruthy();
 });
