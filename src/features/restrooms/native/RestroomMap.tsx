@@ -6,6 +6,7 @@ import type { Coordinates, Restroom } from '../types';
 import { colors, fonts } from '../../../theme/tokens';
 
 export type RestroomMapProps = {
+  deviceLocation?: Coordinates | null;
   fullScreen?: boolean;
   center: Coordinates | null;
   radiusKm: number;
@@ -148,6 +149,14 @@ function MapSurface(props: RestroomMapProps) {
             );
           }}
         >
+          {props.deviceLocation && (
+            <Marker
+              coordinate={props.deviceLocation}
+              title="Your captured location"
+              description="Last captured when you tapped Use my location. Tap it again to update."
+              pinColor={colors.primary}
+            />
+          )}
           {restrooms.map((restroom, index) => (
             <Marker
               key={restroom.id}

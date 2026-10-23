@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text, Pressable } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { createDemoCatalog, demoCenter } from './fixtures';
 import { memoryHistoryPage } from './history';
@@ -6,6 +7,43 @@ import { memoryLocations } from './search-area';
 import { RestroomExperienceProvider } from './context';
 import { DiscoveryScreen, DetailScreen } from './screens';
 import type { ExperienceDependencies } from './types';
+import type { MapAdapterProps } from './screens';
+
+test('captured device location centers discovery and stays separate from a manually selected map area', async () => {
+  const deps = dependencies();
+  deps.location.locate = async () => ({ latitude: 14.55, longitude: 121.02 });
+  function Map({ center, deviceLocation, onSearchArea }: MapAdapterProps) {
+    return (
+      <>
+        <Text>{`Search: ${center?.latitude},${center?.longitude}`}</Text>
+        <Text>{`Device: ${deviceLocation?.latitude},${deviceLocation?.longitude}`}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pan and search"
+          onPress={() => onSearchArea({ latitude: 15, longitude: 122 })}
+        />
+      </>
+    );
+  }
+  await render(
+    <RestroomExperienceProvider dependencies={deps}>
+      <DiscoveryScreen
+        MapComponent={Map}
+        onOpen={() => {}}
+        onAccount={() => {}}
+      />
+    </RestroomExperienceProvider>,
+  );
+  expect(screen.getByText('Device: undefined,undefined')).toBeTruthy();
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Use my location' }),
+  );
+  expect(await screen.findByText('Search: 14.55,121.02')).toBeTruthy();
+  expect(screen.getByText('Device: 14.55,121.02')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Pan and search' }));
+  expect(screen.getByText('Search: 15,122')).toBeTruthy();
+  expect(screen.getByText('Device: 14.55,121.02')).toBeTruthy();
+});
 
 jest.setTimeout(15000);
 

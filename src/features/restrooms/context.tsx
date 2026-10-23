@@ -10,12 +10,16 @@ import { AppState } from 'react-native';
 import { emptyFilters } from './model';
 import type {
   CatalogSnapshot,
+  Coordinates,
   ExperienceDependencies,
   Search,
   Visitor,
 } from './types';
 const empty: CatalogSnapshot = { restrooms: [], reviews: [], reports: [] };
 function useExperience(dependencies: ExperienceDependencies) {
+  const [deviceLocation, setDeviceLocation] = useState<Coordinates | null>(
+    null,
+  );
   const [snapshot, setSnapshot] = useState<CatalogSnapshot>(empty);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [search, setSearch] = useState<Search>({
@@ -145,6 +149,8 @@ function useExperience(dependencies: ExperienceDependencies) {
     return () => clearTimeout(timer);
   }, [snapshot, now, dependencies]);
   return {
+    deviceLocation,
+    setDeviceLocation,
     snapshot,
     setDetailId,
     search,

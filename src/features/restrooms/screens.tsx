@@ -42,6 +42,7 @@ import type {
 } from './types';
 
 export type MapAdapterProps = {
+  deviceLocation?: Coordinates | null;
   fullScreen?: boolean;
   center: Coordinates | null;
   radiusKm: number;
@@ -269,6 +270,8 @@ export function DiscoveryScreen({
   MapComponent?: React.ComponentType<MapAdapterProps>;
 }) {
   const {
+    deviceLocation,
+    setDeviceLocation,
     snapshot,
     search,
     setSearch,
@@ -325,6 +328,7 @@ export function DiscoveryScreen({
     try {
       const center = await dependencies.location.locate();
       if (request !== locationRequest.current) return;
+      setDeviceLocation(center);
       chooseCenter(center, 'Current location');
     } catch (error) {
       if (request !== locationRequest.current) return;
@@ -435,6 +439,11 @@ export function DiscoveryScreen({
           />
         ))}
       </ScrollView>
+      {locating && (
+        <AppText accessibilityLiveRegion="polite">
+          Finding your location…
+        </AppText>
+      )}
       {locationError && (
         <AppText accessibilityRole="alert">{locationError}</AppText>
       )}
@@ -479,6 +488,7 @@ export function DiscoveryScreen({
             {MapComponent ? (
               <MapComponent
                 fullScreen
+                deviceLocation={deviceLocation}
                 center={search.center}
                 radiusKm={search.radiusKm}
                 restrooms={rows.map((row) => row.restroom)}

@@ -42,7 +42,9 @@ export const nativeLocation: ExperienceDependencies['location'] = {
       };
       if (
         !Number.isFinite(coordinates.latitude) ||
-        !Number.isFinite(coordinates.longitude)
+        !Number.isFinite(coordinates.longitude) ||
+        Math.abs(coordinates.latitude) > 90 ||
+        Math.abs(coordinates.longitude) > 180
       ) {
         throw new Error(
           'Location is unavailable. Choose a search area manually.',
