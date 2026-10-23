@@ -4,6 +4,10 @@ The native adapter uses installed `react-native-maps`: Apple Maps on iOS, Google
 
 Location is requested only by the explicit current-location action, with foreground permission. No background permission or watcher is configured. A one-shot fix times out after 12 seconds; an eventual late result cannot change the search. Denial, disabled services, and timeouts leave named catalog area selection and map panning available. Latitude/longitude search inputs have been removed. The operating system permission prompt itself waits for the user's choice.
 
+A failed position request retries once after one second within the same 12-second acquisition deadline. Native exception chains become readable recovery messages. No cached position or demo coordinate is substituted for a current fix. The captured marker retains the last successful explicit capture; it does not track movement.
+
+For an iOS simulator, set a simulated location using Simulator's **Features > Location > Custom Location** before testing a successful capture. Test **None** separately for unavailable-location recovery. On hardware, check foreground permission and system Location Services, then retry where the device can obtain a fix. Record permission, service state, simulated location (when applicable), build identifier, device/OS, and result for both success and failure. `kCLErrorDomain error 0` means Core Location could not determine a location at that time; it alone does not establish a permission or app-configuration problem. See [Apple's locationUnknown documentation](https://developer.apple.com/documentation/corelocation/clerror-swift.struct/code/locationunknown).
+
 ## Try maps in Expo Go
 
 With an Expo Go installation supporting SDK 58, run:

@@ -333,7 +333,9 @@ export function DiscoveryScreen({
     } catch (error) {
       if (request !== locationRequest.current) return;
       setLocationError(
-        `${error instanceof Error ? error.message : 'Location is unavailable'}. Choose a search area below or try again.`,
+        error instanceof Error
+          ? error.message
+          : 'Location is unavailable. Choose a search area or try again.',
       );
       setChoosingArea(true);
     } finally {

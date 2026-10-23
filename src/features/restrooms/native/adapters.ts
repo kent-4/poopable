@@ -6,56 +6,86 @@ import type { ExperienceDependencies, Coordinates, Restroom } from '../types';
 /** Called only by the experience's explicit current-location action. Never watches location. */
 export const nativeLocation: ExperienceDependencies['location'] = {
   async locate() {
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (!permission.granted) {
-      throw new Error(
-        'Location permission is unavailable. Choose a search area manually.',
-      );
-    }
-    if (!(await Location.hasServicesEnabledAsync())) {
-      throw new Error(
-        'Location services are off. Choose a search area manually or enable them in Settings.',
-      );
-    }
-    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const position = await Promise.race([
-        Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-          mayShowUserSettingsDialog: false,
-        }),
-        new Promise<never>((_, reject) => {
-          timer = setTimeout(
-            () =>
-              reject(
-                new Error(
-                  'Location timed out. Choose a search area manually or try again.',
-                ),
-              ),
-            12000,
-          );
-        }),
-      ]);
-      const coordinates: Coordinates = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
-      if (
-        !Number.isFinite(coordinates.latitude) ||
-        !Number.isFinite(coordinates.longitude) ||
-        Math.abs(coordinates.latitude) > 90 ||
-        Math.abs(coordinates.longitude) > 180
-      ) {
-        throw new Error(
-          'Location is unavailable. Choose a search area manually.',
-        );
-      }
-      return coordinates;
-    } finally {
-      if (timer) clearTimeout(timer);
+      return await locateDevice();
+    } catch (error) {
+      // Keep platform exception chains out of the product UI.
+      if (error instanceof DeviceLocationError) throw error;
+      throw new DeviceLocationError(
+        'Your device could not determine its location. Try again with a clearer sky view, or choose a search area manually.',
+      );
     }
   },
 };
+
+class DeviceLocationError extends Error {}
+
+async function locateDevice(): Promise<Coordinates> {
+  const permission = await Location.requestForegroundPermissionsAsync();
+  if (!permission.granted) {
+    throw new DeviceLocationError(
+      permission.canAskAgain
+        ? 'Location permission was not granted. Try again or choose a search area manually.'
+        : 'Location permission is off for Poopable. Enable it in Settings or choose a search area manually.',
+    );
+  }
+  if (!(await Location.hasServicesEnabledAsync())) {
+    throw new DeviceLocationError(
+      'Location services are off. Choose a search area manually or enable them in Settings.',
+    );
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let finished = false;
+  async function acquire() {
+    const options = {
+      accuracy: Location.Accuracy.Balanced,
+      mayShowUserSettingsDialog: false,
+    };
+    try {
+      return await Location.getCurrentPositionAsync(options);
+    } catch (error) {
+      // iOS can reject a one-shot request while a location fix is warming up.
+      if (finished) throw error;
+      await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+      if (finished) throw error;
+      return Location.getCurrentPositionAsync(options);
+    }
+  }
+  try {
+    const position = await Promise.race([
+      acquire(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new DeviceLocationError(
+                'Location timed out. Choose a search area manually or try again.',
+              ),
+            ),
+          12000,
+        );
+      }),
+    ]);
+    const coordinates: Coordinates = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+    if (
+      !Number.isFinite(coordinates.latitude) ||
+      !Number.isFinite(coordinates.longitude) ||
+      Math.abs(coordinates.latitude) > 90 ||
+      Math.abs(coordinates.longitude) > 180
+    ) {
+      throw new DeviceLocationError(
+        'Location is unavailable. Choose a search area manually.',
+      );
+    }
+    return coordinates;
+  } finally {
+    finished = true;
+    if (timer) clearTimeout(timer);
+  }
+}
 
 function destination(restroom: Restroom) {
   const { latitude, longitude } = restroom.entrance;
